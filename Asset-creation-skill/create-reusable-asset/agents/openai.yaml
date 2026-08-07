@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Reusable Asset"
+  short_description: "Extract, package, register, and verify reusable assets"
+  default_prompt: "Use $create-reusable-asset to turn this project activity into a portable, governed reusable asset."

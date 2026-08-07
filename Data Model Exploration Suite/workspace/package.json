@@ -1,0 +1,49 @@
+{
+  "name": "reusable-data-model-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reusable Data Model Workspace: static/public explorer + local governance annotations generated from canonical DBML.",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "scripts": {
+    "build:model": "tsx scripts/build-model.mjs",
+    "build:layouts": "tsx scripts/build-layouts.mjs",
+    "build:all": "tsx scripts/build-all.mjs",
+    "qa:parser-report": "tsx scripts/report-parser.mjs",
+    "qa:manifest": "tsx scripts/sha256-manifest.mjs",
+    "predev": "tsx scripts/build-all.mjs",
+    "dev": "vite",
+    "build": "tsx scripts/build-all.mjs && vite build",
+    "build:public": "tsx scripts/build-all.mjs && cross-env VITE_PUBLIC_MODE=1 vite build",
+    "preview": "vite preview",
+    "pretest": "tsx scripts/build-all.mjs && cross-env VITE_PUBLIC_MODE=1 vite build",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "qa:screenshots": "node scripts/capture-screenshots.mjs",
+    "pretypecheck": "tsx scripts/build-all.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@xyflow/react": "12.11.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@dbml/core": "9.1.1",
+    "@playwright/test": "1.62.1",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.10",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.5",
+    "cross-env": "7.0.3",
+    "elkjs": "0.12.0",
+    "tsx": "4.23.9",
+    "typescript": "5.9.3",
+    "vite": "8.2.1",
+    "vitest": "4.1.10"
+  }
+}

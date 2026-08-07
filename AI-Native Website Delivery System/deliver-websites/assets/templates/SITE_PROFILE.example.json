@@ -1,0 +1,133 @@
+{
+  "site": {
+    "name": "Northstar Tool Library",
+    "tagline": "Borrow useful things. Build a stronger neighbourhood.",
+    "description": "A fictional community tool-lending website used to demonstrate the reusable delivery system.",
+    "base_url": "https://northstar.invalid",
+    "language": "en",
+    "contact_email": "hello@northstar.invalid"
+  },
+  "audiences": [
+    {
+      "id": "community-member",
+      "situation": "Needs a tool for a practical project",
+      "need": "Understand what can be borrowed and how",
+      "proof": "Clear catalogue and borrowing expectations",
+      "primary_action": "Browse the catalogue"
+    }
+  ],
+  "stages": {
+    "launch": ["public-content", "catalogue", "contact", "discovery-sharing"],
+    "grow": ["site-search", "newsletter"],
+    "community_or_application": ["member-accounts", "contributions"],
+    "activation_notes": "Later capabilities require observed demand, named owners, and a separate architecture/privacy decision."
+  },
+  "capabilities": [
+    {"id": "public-content", "stage": "launch", "status": "required", "owner": "Project content owner"},
+    {"id": "member-accounts", "stage": "community_or_application", "status": "not-now", "trigger": "Private member value is approved"}
+  ],
+  "theme": {
+    "canvas": "#f7f5ef",
+    "surface": "#ffffff",
+    "text": "#17201b",
+    "muted": "#53605a",
+    "accent": "#176b4d",
+    "accent_text": "#ffffff",
+    "border": "#d7ddd8"
+  },
+  "routes": [
+    {
+      "path": "/",
+      "nav_label": "Home",
+      "title": "Borrow tools. Share possibility.",
+      "description": "Discover a fictional community library for tools, skills, and neighbourly projects.",
+      "eyebrow": "Community resources",
+      "heading": "More making. Less buying.",
+      "intro": "Borrow well-maintained tools, learn from neighbours, and finish the project you have been putting off.",
+      "primary_action": {"label": "Browse the catalogue", "href": "/catalogue/"},
+      "sections": [
+        {"heading": "Start with what you need", "body": "Browse practical equipment, understand borrowing expectations, and ask for help when a project is unfamiliar."},
+        {"heading": "Built for shared care", "body": "Clear ownership, maintenance, and return guidance make a lending community dependable."}
+      ],
+      "index": true,
+      "show_in_nav": true,
+      "show_in_footer": false,
+      "social_alt": "Northstar Tool Library share card"
+    },
+    {
+      "path": "/catalogue/",
+      "nav_label": "Catalogue",
+      "title": "Tool catalogue",
+      "description": "Explore fictional categories and learn how the catalogue will work.",
+      "eyebrow": "Browse",
+      "heading": "Find the right tool for the job.",
+      "intro": "A collection page archetype for public resources, products, stories, services, or records.",
+      "primary_action": {"label": "See a sample item", "href": "/catalogue/cordless-drill/"},
+      "sections": [{"heading": "Designed to grow", "body": "The route and content model can later connect to a file collection, CMS, search index, or application API when justified."}],
+      "index": true,
+      "show_in_nav": true,
+      "show_in_footer": true,
+      "social_alt": "Tool catalogue share card"
+    },
+    {
+      "path": "/catalogue/cordless-drill/",
+      "nav_label": "Sample item",
+      "title": "Cordless drill — sample item",
+      "description": "A fictional detail-page example for a community lending catalogue.",
+      "eyebrow": "Sample item",
+      "heading": "Cordless drill",
+      "intro": "A reusable detail archetype with a clear purpose, concise context, and a next action.",
+      "primary_action": {"label": "Ask about membership", "href": "/join/"},
+      "sections": [{"heading": "Before borrowing", "body": "Confirm availability, safety guidance, included parts, loan period, and the return condition."}],
+      "index": true,
+      "show_in_nav": false,
+      "show_in_footer": false,
+      "social_alt": "Cordless drill sample page share card"
+    },
+    {
+      "path": "/join/",
+      "nav_label": "Join",
+      "title": "Join the library",
+      "description": "Understand the fictional membership process and what happens next.",
+      "eyebrow": "Membership",
+      "heading": "Join in three clear steps.",
+      "intro": "Set expectations before asking for information or commitment.",
+      "primary_action": {"label": "Contact the team", "href": "/contact/"},
+      "sections": [{"heading": "What to expect", "body": "Review the borrowing agreement, attend a short orientation, and activate membership only when both sides are ready."}],
+      "index": true,
+      "show_in_nav": true,
+      "show_in_footer": true,
+      "social_alt": "Membership page share card"
+    },
+    {
+      "path": "/contact/",
+      "nav_label": "Contact",
+      "title": "Contact",
+      "description": "Contact the fictional tool-library team.",
+      "eyebrow": "Questions",
+      "heading": "Tell us what you are trying to make.",
+      "intro": "A conversion page should explain the response, timing, privacy, and recovery path before collecting data.",
+      "primary_action": {"label": "Email us", "href": "mailto:hello@northstar.invalid"},
+      "sections": [{"heading": "Response expectation", "body": "This starter uses a mail link. Add a server-backed form only when validation, spam control, privacy, storage, and ownership are defined."}],
+      "index": true,
+      "show_in_nav": true,
+      "show_in_footer": true,
+      "social_alt": "Contact page share card"
+    },
+    {
+      "path": "/privacy/",
+      "nav_label": "Privacy",
+      "title": "Privacy",
+      "description": "A fictional privacy-page placeholder that must be replaced with project-approved content.",
+      "eyebrow": "Trust",
+      "heading": "Privacy should be understandable.",
+      "intro": "State what is collected, why, where it goes, how long it remains, and how a person can exercise their rights.",
+      "primary_action": {"label": "Ask a privacy question", "href": "/contact/"},
+      "sections": [{"heading": "Project action required", "body": "Replace this demonstration copy after the project's real data flows and legal obligations are reviewed."}],
+      "index": true,
+      "show_in_nav": false,
+      "show_in_footer": true,
+      "social_alt": "Privacy page share card"
+    }
+  ]
+}

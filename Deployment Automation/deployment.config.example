@@ -1,0 +1,14 @@
+# Copy this file into a project and replace every value.
+# Format: one unquoted KEY=VALUE per line. Full-line comments are allowed.
+
+DEPLOY_PROJECT=your-gcp-project-id
+DEPLOY_SERVICE=your-cloud-run-service
+DEPLOY_REGION=us-central1
+DEPLOY_BRANCH=main
+DEPLOY_DOMAIN=https://example.com
+BUILD_WORKING_DIRECTORY=website
+BUILD_COMMAND=npm run build
+CLOUD_BUILD_CONFIG=cloudbuild.yaml
+IMAGE_REPOSITORY=gcr.io/your-gcp-project-id/your-cloud-run-service
+DEFAULT_VERIFY_ROUTE=/
+EXPECTED_TRAFFIC_PERCENT=100

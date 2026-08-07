@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI-Native Rapid Solution Delivery"
+  short_description: "Turn stakeholder ideas into build-ready solution plans"
+  default_prompt: "Use $rapid-ai-solution-delivery to turn my project idea into a concise, governed, build-ready first slice."

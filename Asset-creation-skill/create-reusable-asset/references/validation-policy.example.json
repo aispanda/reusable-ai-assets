@@ -1,0 +1,18 @@
+{
+  "forbidden_terms": [
+    "ExampleClient",
+    "ExamplePrivateProject"
+  ],
+  "additional_secret_patterns": [
+    "(?i)example-internal-token\\s*[:=]"
+  ],
+  "additional_machine_path_patterns": [
+    "(?i)[a-z]:\\\\example-private-root\\\\"
+  ],
+  "additional_secret_file_names": [
+    "example-provider-credentials.json"
+  ],
+  "additional_output_directory_names": [
+    ".example-cache"
+  ]
+}

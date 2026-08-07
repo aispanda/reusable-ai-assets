@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deliver Websites"
+  short_description: "Turn website ideas into launch-ready systems"
+  default_prompt: "Turn this website idea into a staged, governed, launch-ready system. Ask only consequential business-friendly questions, use one project profile, choose the lightest suitable architecture and current tools, implement reusable accessible patterns, and verify discovery, sharing, performance, security, and release gates."

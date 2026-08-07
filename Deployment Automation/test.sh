@@ -43,6 +43,11 @@ echo "gcloud $args" >> "${STUB_CALLS_LOG:?}"
 case "$args" in
   *"config get-value project"*) echo "${TEST_PROJECT:?}" ;;
   *"auth list"*) echo "tester@example.com" ;;
+  *"billing projects describe"*) echo "True" ;;
+  *"projects describe"*) echo "${TEST_PROJECT:?}" ;;
+  *"services list"*"config.name=cloudbuild.googleapis.com"*) echo "cloudbuild.googleapis.com" ;;
+  *"services list"*"config.name=artifactregistry.googleapis.com"*) echo "artifactregistry.googleapis.com" ;;
+  *"services list"*"config.name=run.googleapis.com"*) echo "run.googleapis.com" ;;
   *"builds submit"*) echo "unexpected build submission" >&2; exit 99 ;;
   *"builds list"*)
     if [[ "$args" == *"substitutions.COMMIT_SHA="* ]]; then
@@ -231,8 +236,9 @@ export ROUTE_RESPONSE_MODE=redirect-ok
 run_from_repo "$VALID_CONFIG" --verify > "$TEST_ROOT/redirect-ok.log" 2>&1
 grep -Fq "HTTP 200 (final response after redirects)" "$TEST_ROOT/redirect-ok.log" || fail "valid redirect chain was not accepted"
 grep -Fq "curl -sS -L --max-redirs 10" "$CALLS" || fail "route verification did not follow bounded redirects"
+grep -Fq -- "--retry 2 --retry-all-errors --retry-delay 2 --max-time 30" "$CALLS" || fail "route verification did not use bounded transient retries"
 unset ROUTE_RESPONSE_MODE
-pass "valid redirect chain"
+pass "valid redirect chain and bounded transient retry"
 
 : > "$CALLS"
 export ROUTE_RESPONSE_MODE=redirect-bad

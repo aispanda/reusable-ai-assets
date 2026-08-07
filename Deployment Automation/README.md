@@ -45,13 +45,21 @@ Configuration is restricted data, never sourced or evaluated. Use unquoted `KEY=
 | `DEPLOY_SERVICE` | Cloud Run service name |
 | `DEPLOY_REGION` | Cloud Run region |
 | `DEPLOY_BRANCH` | required local and remote branch |
-| `DEPLOY_DOMAIN` | live origin without trailing slash |
+| `DEPLOY_DOMAIN` | `AUTO` for the Cloud Run origin, or a live origin without trailing slash |
 | `BUILD_WORKING_DIRECTORY` | build directory relative to repository root |
 | `BUILD_COMMAND` | explicitly trusted production-build command |
 | `CLOUD_BUILD_CONFIG` | Cloud Build YAML path relative to repository root |
 | `IMAGE_REPOSITORY` | image name without the SHA tag |
 | `DEFAULT_VERIFY_ROUTE` | verification route beginning with `/` |
 | `EXPECTED_TRAFFIC_PERCENT` | expected traffic on the serving revision |
+
+`AUTO` resolves an existing service URL during preflight or classifies a missing service as a first deployment and resolves its URL after the build.
+
+## First-deployment readiness
+
+Preflight checks target-project access independently from the CLI default, active billing, Cloud Build/Artifact Registry/Cloud Run APIs, the target Artifact Registry repository and Cloud Run service existence. A different CLI default project is reported but cannot redirect operations because every cloud call receives the configured project explicitly. Missing APIs or repositories stop before approval with the exact bootstrap prerequisite; infrastructure creation remains a separate explicit decision.
+
+Before release, inspect the container install layer: it must receive every dependency-policy file before installing packages (for example, the package-manager workspace configuration as well as the manifest and lockfile). This prevents local builds from passing while a clean cloud build applies different supply-chain rules.
 
 ## Test
 

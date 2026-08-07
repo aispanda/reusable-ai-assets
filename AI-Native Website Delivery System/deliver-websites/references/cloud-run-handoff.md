@@ -58,9 +58,9 @@ A request to deploy does not silently authorise committing private work, making 
 
 1. Declare first deployment or repeat release.
 2. Resolve the approved CLI, shell, package manager and container/build runtime by exact executable path and version; do not assume `PATH`.
-3. Verify authenticated account and active project independently. Pass the project explicitly to every mutating cloud command.
+3. Verify authenticated account and target-project access independently. Pass the target project explicitly to every cloud command; a different CLI default is a warning, not permission to redirect the operation.
 4. Confirm active billing, project access, region, registry and service values before image work; keep personal identity out of public source.
-5. For first deployment, verify required build, registry and runtime APIs; verify or explicitly create the target image repository and service prerequisites.
+5. For first deployment, verify required build, registry and runtime APIs; verify or explicitly create the target image repository and service prerequisites. Resolve the runtime origin after the first build instead of guessing a service URL that does not exist yet.
 6. Confirm repository visibility and that the exact public artifact contains no secrets, proprietary fixtures, local paths or prohibited terminology.
 7. Obtain source-publication approval when a commit/push is required; record the clean remote revision to deploy.
 8. Clean build and strict site audit pass.

@@ -14,9 +14,10 @@ Provide a controlled manual deployment flow: preflight â†’ exact `DEPLOY` gate â
 ## Transfer manifest
 
 - [`README.md`](README.md): authoritative operating procedure, safety boundaries and configuration.
-- [`deploy.sh`](deploy.sh): deployment controller.
+- [`deploy.sh`](deploy.sh): deployment controller with first/repeat-release readiness classification, explicit-project cloud calls and automatic Cloud Run URL resolution.
 - [`test.sh`](test.sh): local-only test suite using stubs; never contacts Google Cloud.
 - [`deployment.config.example`](deployment.config.example): per-project configuration contract.
+- [`ISSUES_AND_RESOLUTIONS.md`](ISSUES_AND_RESOLUTIONS.md): reusable deployment failures, fixes and prevention gates.
 - [`DEPLOY_PROJECT_PROMPT.md`](DEPLOY_PROJECT_PROMPT.md): reusable AI deployment request.
 - `examples/`: project request examples; adapt rather than copy facts blindly.
 
@@ -34,4 +35,4 @@ bash "./test.sh"
 
 ## Boundaries
 
-Deployment is an external state change and always requires its documented preflight and approval gate. A project owns its deployment configuration; this central toolkit owns reusable deployment behavior.
+Deployment is an external state change and always requires its documented preflight and approval gate. First-deployment infrastructure creation remains separately explicit. A project owns its deployment configuration; this central toolkit owns reusable deployment behavior.

@@ -9,6 +9,7 @@ Do not call a site launch-ready until applicable gates pass.
 - repository owner, backup administrator, MFA/recovery method, visibility and licence are recorded;
 - source access follows least privilege; no personal password, recovery code, API key or deployment credential is committed;
 - clean install/build from documented commands;
+- build workspace and generated-output directories are writable by the approved runtime identity;
 - no unresolved placeholders or secret-like values;
 - every canonical route returns the intended initial HTML directly;
 - refresh and deep-link behaviour works;
@@ -26,6 +27,7 @@ Do not call a site launch-ready until applicable gates pass.
 - authenticated Git principal is checked separately and has access to the intended repository owner;
 - deployment uses a clean, identified remote revision;
 - source publication, infrastructure, deployment and DNS approvals are tracked separately.
+- public/private runtime access is explicit and the deployed route is tested anonymously when public access is intended.
 
 ### Document and discovery
 
@@ -51,7 +53,8 @@ Do not call a site launch-ready until applicable gates pass.
 - asset and JavaScript budgets respected;
 - cache headers match asset mutability;
 - no client console error or failed required request in representative flows;
-- dependency and container vulnerability review proportionate to exposure.
+- dependency and container vulnerability review proportionate to exposure;
+- clean container installs receive the same package-manager policy files as local development; reviewed release-age exceptions name the exact package/version, never a global bypass.
 
 ### Security/privacy
 

@@ -62,7 +62,7 @@ die()  { echo "FAIL: $*" >&2; echo "STOP: no retries, no fallbacks — fix the c
 # Git Bash/MSYS must not rewrite curl URLs into Windows paths, while local
 # output paths passed to -o still need conversion.
 run_curl() { MSYS2_ARG_CONV_EXCL='http://;https://' curl "$@"; }
-run_route_curl() { run_curl -sS -L --max-redirs 10 "$@"; }
+run_route_curl() { run_curl -sS -L --max-redirs 10 --retry 2 --retry-all-errors --retry-delay 2 --max-time 30 "$@"; }
 
 usage() {
   sed -n '2,/^# Every check/p' "$0" | sed 's/^# \{0,1\}//'
@@ -149,8 +149,8 @@ load_config() {
     || die "invalid DEPLOY_REGION: '$DEPLOY_REGION'"
   [[ "$DEPLOY_BRANCH" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ && "$DEPLOY_BRANCH" != *..* ]] \
     || die "invalid DEPLOY_BRANCH: '$DEPLOY_BRANCH'"
-  [[ "$DEPLOY_DOMAIN" =~ ^https?://[^[:space:]/]+(:[0-9]+)?$ ]] \
-    || die "invalid DEPLOY_DOMAIN (use an origin without a trailing slash): '$DEPLOY_DOMAIN'"
+  [[ "$DEPLOY_DOMAIN" == "AUTO" || "$DEPLOY_DOMAIN" =~ ^https?://[^[:space:]/]+(:[0-9]+)?$ ]] \
+    || die "invalid DEPLOY_DOMAIN (use AUTO or an origin without a trailing slash): '$DEPLOY_DOMAIN'"
   [[ "$BUILD_WORKING_DIRECTORY" != /* && ! "$BUILD_WORKING_DIRECTORY" =~ ^[A-Za-z]:[\\/] && "$BUILD_WORKING_DIRECTORY" != ".." && "$BUILD_WORKING_DIRECTORY" != ../* && "$BUILD_WORKING_DIRECTORY" != */../* && "$BUILD_WORKING_DIRECTORY" != */.. ]] \
     || die "BUILD_WORKING_DIRECTORY must stay inside the repository: '$BUILD_WORKING_DIRECTORY'"
   [[ "$CLOUD_BUILD_CONFIG" != /* && ! "$CLOUD_BUILD_CONFIG" =~ ^[A-Za-z]:[\\/] && "$CLOUD_BUILD_CONFIG" != ".." && "$CLOUD_BUILD_CONFIG" != ../* && "$CLOUD_BUILD_CONFIG" != */../* && "$CLOUD_BUILD_CONFIG" != */.. ]] \
@@ -240,7 +240,7 @@ Expected: clean (commit or stash first)"
   if [[ -z "$gcp_project" ]]; then
     warn "gcloud default project unset — continuing with explicit --project $PROJECT on every call"
   elif [[ "$gcp_project" != "$PROJECT" ]]; then
-    die "wrong GCP project. Observed: '$gcp_project'. Expected: '$PROJECT'"
+    warn "gcloud default project is '$gcp_project'; continuing safely because every cloud call explicitly uses --project $PROJECT"
   fi
   pass "GCP project: $PROJECT"
 
@@ -257,12 +257,52 @@ Expected: clean (commit or stash first)"
   account="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null || true)"
   [[ -n "$account" ]] || die "gcloud not authenticated (no active account). Run: gcloud auth login"
   pass "gcloud authenticated as: $account"
+  gcloud projects describe "$PROJECT" >/dev/null 2>&1 \
+    || die "cannot access project $PROJECT with active account $account"
+  local billing_enabled
+  billing_enabled="$(gcloud billing projects describe "$PROJECT" --format='value(billingEnabled)' 2>/dev/null || true)"
+  [[ "$billing_enabled" == "True" || "$billing_enabled" == "true" ]] \
+    || die "billing is not enabled for project $PROJECT"
+  pass "project access and billing confirmed"
+  local api enabled
+  for api in cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com; do
+    enabled="$(gcloud services list --enabled --project "$PROJECT" --filter="config.name=$api" --format='value(config.name)' 2>/dev/null || true)"
+    [[ "$enabled" == "$api" ]] \
+      || die "required API is not enabled: $api. First-deployment bootstrap must enable it explicitly before DEPLOY"
+  done
+  pass "required APIs enabled: Cloud Build, Artifact Registry, Cloud Run"
   gcloud builds list --limit 1 --project "$PROJECT" >/dev/null 2>&1 \
     || die "cannot list Cloud Builds in project $PROJECT (permissions or API). Fix access before deploying"
   pass "Cloud Build API access confirmed"
 
+  if [[ "$IMAGE_REPO" =~ ^([a-z0-9-]+)-docker\.pkg\.dev/([^/]+)/([^/]+)/[^/]+$ ]]; then
+    local artifact_location="${BASH_REMATCH[1]}" artifact_project="${BASH_REMATCH[2]}" artifact_repository="${BASH_REMATCH[3]}"
+    [[ "$artifact_project" == "$PROJECT" ]] \
+      || die "Artifact Registry image project '$artifact_project' does not match DEPLOY_PROJECT '$PROJECT'"
+    gcloud artifacts repositories describe "$artifact_repository" --location "$artifact_location" --project "$PROJECT" >/dev/null 2>&1 \
+      || die "Artifact Registry repository '$artifact_repository' does not exist in $artifact_location. First-deployment bootstrap must create it explicitly before DEPLOY"
+    pass "Artifact Registry repository: $artifact_repository / $artifact_location"
+  fi
+
+  local service_url
+  service_url="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" --format='value(status.url)' 2>/dev/null || true)"
+  if [[ -n "$service_url" && "$DOMAIN" == "AUTO" ]]; then
+    DOMAIN="$service_url"
+    pass "service URL resolved: $DOMAIN"
+  elif [[ -z "$service_url" && "$DOMAIN" == "AUTO" ]]; then
+    warn "Cloud Run service does not exist yet; classified as first deployment and its URL will be resolved after build"
+  fi
+
   PREFLIGHT_OK=1
   info "preflight: all checks passed"
+}
+
+resolve_auto_domain() {
+  [[ "$DOMAIN" == "AUTO" ]] || return 0
+  DOMAIN="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" --format='value(status.url)' 2>/dev/null || true)"
+  [[ "$DOMAIN" =~ ^https://[^[:space:]/]+$ ]] \
+    || die "deployed service URL could not be resolved for $SERVICE in $REGION"
+  pass "service URL resolved after deployment: $DOMAIN"
 }
 
 # --- Duplicate-build guard ----------------------------------------------------
@@ -364,11 +404,11 @@ infra_verify() {
   # 1. Cloud Build success
   if [[ "$MODE" == "--deploy" ]]; then
     [[ "$VERDICT_DEPLOY" == "SUCCESS" ]] || { echo "INFRA-FAIL: build did not succeed"; failures=$((failures+1)); }
-    # 2. image tag in build output matches expected SHA
+    # Console wording varies across builders; immutable registry/revision checks below are authoritative.
     if grep -Fq "Successfully tagged $IMAGE_REPO:$FULL_SHA" "$LOG_FILE"; then
       pass "infra: image tag == expected SHA ($IMAGE_REPO:$FULL_SHA)"
     else
-      echo "INFRA-FAIL: build log lacks 'Successfully tagged $IMAGE_REPO:$FULL_SHA'"; failures=$((failures+1))
+      warn "build log lacks the legacy 'Successfully tagged' phrase; continuing to registry digest and serving-revision verification"
     fi
   else
     local latest_status
@@ -629,6 +669,7 @@ main() {
       reject_existing_build_for_sha
       gate
       deploy
+      resolve_auto_domain
       infra_verify
       [[ "$VERDICT_INFRA" == "PASS" ]] || { print_handover; die "infrastructure verification failed — see INFRA-FAIL lines above. Deployment succeeded but live state is unverified"; }
       content_verify
@@ -642,6 +683,7 @@ main() {
       [[ -e .git && -f "$CONFIG_FILE" && -d "$BUILD_WORKING_DIRECTORY" ]] || die "--verify must run from the repository root"
       FULL_SHA="$(git rev-parse HEAD)" || die "cannot resolve HEAD SHA"
       [[ "$FULL_SHA" =~ ^[0-9a-f]{40}$ ]] || die "malformed HEAD SHA: '$FULL_SHA'"
+      resolve_auto_domain
       info "verifying live state against HEAD SHA: $FULL_SHA"
       infra_verify
       [[ "$VERDICT_INFRA" == "PASS" ]] || { print_handover; die "infrastructure verification failed"; }

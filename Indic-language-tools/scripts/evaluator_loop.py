@@ -11,20 +11,28 @@ Your absolute priority is preventing hallucinations, omissions of scandalous/cri
 
 Input:
 1. Original {source_lang} Transcript
-2. Generated {target_lang} Summary
+2. Generated {target_lang} Summary (which must have 4 specific Markdown sections)
 
 You MUST follow this exact Step-by-Step Chain of Thought BEFORE rendering a verdict:
 
-STEP 1: OMISSION HUNTING
+STEP 1: FORMAT CHECK
+Does the Generated Summary strictly contain these exact 4 Markdown headers?
+- ## Tags
+- ## Quotes
+- ## Comprehensive Summary
+- ## Short Summary
+If any are missing, it is an automatic failure.
+
+STEP 2: OMISSION HUNTING
 Without looking at the summary, identify the 5 most critical, sensitive, or culturally significant facts/allegations directly from the Original Transcript. List them out.
 
-STEP 2: CROSS-REFERENCE
-Now, check the Generated Summary. Does it successfully include ALL 5 of the critical facts you identified? Explain your findings for each point.
+STEP 3: CROSS-REFERENCE
+Now, check the Generated Summary. Does it successfully include ALL 5 of the critical facts you identified? Explain your findings for each point. Also, verify that the 'Short Summary' is reasonably concise (around 150 words).
 
-STEP 3: VERDICT
-Based on your cross-reference, on a new line at the very end of your response, output exactly one of the following:
-- If the summary captures all critical details and has no hallucinations, output: VERDICT: PASS
-- If the summary is missing critical details, hallucinates, or mistranslates, output: VERDICT: FAIL, followed by your specific feedback on what the Generator must fix in the next attempt.
+STEP 4: VERDICT
+Based on your cross-reference and format check, on a new line at the very end of your response, output exactly one of the following:
+- If the summary captures all critical details, has no hallucinations, and perfectly follows the 4-part format, output: VERDICT: PASS
+- If the summary is missing critical details, hallucinates, mistranslates, or fails the format check, output: VERDICT: FAIL, followed by your specific feedback on what the Generator must fix in the next attempt.
 """
 
 def evaluate_summary(transcript: str, summary: str, judge_model: str, source_lang: str, target_lang: str) -> tuple[bool, str]:

@@ -59,9 +59,14 @@ pass() { echo "PASS: $*"; }
 warn() { WARNINGS+=("$1"); echo "WARN: $*"; }
 die()  { echo "FAIL: $*" >&2; echo "STOP: no retries, no fallbacks — fix the cause and re-run." >&2; exit 1; }
 
-# Git Bash/MSYS must not rewrite curl URLs into Windows paths, while local
-# output paths passed to -o still need conversion.
-run_curl() { MSYS2_ARG_CONV_EXCL='http://;https://' curl "$@"; }
+# Git Bash/MSYS must not rewrite https://host/path into a Windows path or :8080.
+# Prefer curl.exe on Windows so MSYS path conversion never touches the URL.
+if command -v curl.exe >/dev/null 2>&1; then
+  CURL_BIN=(curl.exe)
+else
+  CURL_BIN=(env MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' curl)
+fi
+run_curl() { "${CURL_BIN[@]}" "$@"; }
 run_route_curl() { run_curl -sS -L --max-redirs 10 --retry 2 --retry-all-errors --retry-delay 2 --max-time 30 "$@"; }
 
 usage() {

@@ -27,18 +27,31 @@ To prevent the Judge from anchoring onto the Generator's output, implement **Cha
 - **Cross-Examination**: Force the Judge to explicitly check if those facts exist in the generated artifact.
 - **Final Verdict**: Only render PASS/FAIL at the absolute end.
 
-### The Judge Output Schema (JSON Contract)
-The Judge MUST return its analysis in structured JSON format.
-**Rule**: `verdict` is derived strictly from `score >= 0.85` (default).
+### The Dual-LLM Output Schema (Markdown Contract)
+Instead of forcing strict JSON out of generative LLMs, enforce a highly structured 4-part Markdown output schema for the Generator, combined with CoT evaluation from the Judge.
 
-```json
-{
-  "fact_extraction": ["Source requires X"],
-  "cross_examination": [{"requirement": "X positive", "found": true}],
-  "score": 0.85,
-  "verdict": "PASS",
-  "actionable_feedback": []
-}
+**Generator Schema:**
+```markdown
+## Tags
+[Comma-separated list of tags]
+## Quotes
+[Critical quotes translated]
+## Comprehensive Summary
+[Full narrative]
+## Short Summary
+[~150 words TL;DR]
+```
+
+**Judge Schema:**
+The Judge MUST follow CoT and output a final verdict on the last line.
+```markdown
+STEP 1: FORMAT CHECK
+...
+STEP 2: OMISSION HUNTING
+...
+STEP 3: CROSS-REFERENCE
+...
+VERDICT: PASS / FAIL [with actionable feedback]
 ```
 
 ### Loop Control & Guardrails

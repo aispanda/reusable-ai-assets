@@ -27,11 +27,11 @@ Do not manually reconstruct the Cloud Build or deployment commands. Do not narra
 
 Use one deployment process and one approval channel. Never start the gate in a detached or hidden OS console.
 
-When this request runs in an active Codex task, present the production-gate summary in that task and accept an exact user message of `DEPLOY` there as the approval. Relay that already-approved token to the toolkit through LF-only POSIX stdin inside the same Git Bash process. Do not make the user find another terminal, paste a command, use the clipboard, or repeat `DEPLOY` in a second place. Do not use a PowerShell `echo` pipeline.
+When this request runs in an active Codex/Cursor task, present the production-gate summary in that task and accept an exact user message of `DEPLOY` there as the approval. Relay that already-approved token to the toolkit through LF-only POSIX stdin inside the same Git Bash process. Do not make the user find another terminal, paste a command, use the clipboard, or repeat `DEPLOY` in a second place. Do not use a PowerShell `echo` pipeline. If the user already typed exact `DEPLOY` for this same full SHA in the active task, relay it once and do not ask them to type it again.
 
 If the user explicitly prefers terminal approval, use one visible foreground Git Bash TTY and accept `DEPLOY` directly at its gate. If neither approval channel is available, stop without submitting.
 
-Before opening the gate—and before every retry—query Cloud Build for the exact full SHA. Stop if a matching build is queued or working. If it already succeeded, run `--verify` instead of submitting the same SHA again. Terminating a local process does not cancel a remote build.
+Before opening the gate—and before every retry—query Cloud Build for the exact full SHA. Stop if a matching build is queued or working. If it already succeeded, run `--verify` instead of submitting the same SHA again (do not ask for another `DEPLOY`). Terminating a local process does not cancel a remote build.
 
 At the gate, show only:
 

@@ -18,6 +18,13 @@ Turn valuable project work into one portable, governed package without duplicati
 7. Publish safely: staged copy -> clean verification -> consumer wrapper/router repoint -> obsolete duplicate removal. Never move the working source first.
 8. Resolve approved runtimes and verify one representative utility before testing. Run narrow tests, consumer tests, [validate_asset.py](scripts/validate_asset.py), and `--strict-clean` against a staged transfer package. For AI skills or judgment-heavy processes, run the three cases in [evaluation-cases.md](references/evaluation-cases.md). Mark `Reusable` only from observed evidence.
 9. When a failure reveals a reusable workflow weakness, add the evidence, root cause, safe resolution and prevention to [issue-resolution-patterns.md](references/issue-resolution-patterns.md). Do not log routine project defects that teach nothing reusable.
+10. Route each reusable lesson to the asset that owns the affected behavior and strengthen its checklist, template, validator or test. If no existing asset owns the use case, highlight a candidate with its outcome and boundary; do not create it silently.
+
+## Compounding improvement loop
+
+`Deliver -> observe repetition/failure -> strengthen the owning asset or flag a genuine gap -> validate -> register -> reuse -> learn again.`
+
+Prefer an improved existing skill over a growing catalogue of overlapping skills. The library compounds only when verified learning returns to the reusable owner.
 
 ## Specific use-case models
 
@@ -31,6 +38,7 @@ Prefer configuration and profiles over copied forks. State that starter fields a
 
 ## Token discipline
 
+- Reduce cost through targeted reads, progressive disclosure, reusable automation and evidence links; never reduce required quality, safety, scope or verification.
 - Read inventory -> selected `ASSET.md` -> only linked components needed for the task.
 - Search routers and filenames before opening owning documents.
 - Link source files; never paste their contents into `ASSET.md`.

@@ -1,0 +1,13 @@
+# Copy into the consuming project. Replace every value.
+# Format: one unquoted KEY=VALUE per line. Full-line comments allowed.
+# Registrar API secrets: SPACESHIP_API_KEY / SPACESHIP_API_SECRET env vars only.
+
+CUSTOM_DOMAIN_PROJECT=your-gcp-project-id
+CUSTOM_DOMAIN_SERVICE=your-cloud-run-service
+CUSTOM_DOMAIN_REGION=us-central1
+CUSTOM_DOMAIN_CANONICAL=https://www.example.com
+CUSTOM_DOMAIN_HOSTS=example.com,www.example.com
+CUSTOM_DOMAIN_REGISTRAR=spaceship
+# Defaults: canonical www; map apex+www; DNS via UI paste unless API keys + IP allowlist ready.
+# CUSTOM_DOMAIN_HOSTS: comma-separated hostnames to map (order preserved)
+# CUSTOM_DOMAIN_REGISTRAR: label only (spaceship|cloudflare|namecheap|porkbun|other)

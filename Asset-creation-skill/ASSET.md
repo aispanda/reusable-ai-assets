@@ -5,11 +5,11 @@
 | Category | AI workflow / governance |
 | Select when | Repeated project work may become portable code, a template, process, reference or AI skill |
 | Skill | [`create-reusable-asset/SKILL.md`](create-reusable-asset/SKILL.md) |
-| Status | Reusable v1.4; expanded cross-agent evaluation pending |
+| Status | Reusable v1.5; expanded cross-agent evaluation pending |
 
 ## Outcome
 
-Guide an AI agent through deciding whether work merits reuse, separating core/profile/evidence, packaging it into this central library, validating portability and repointing project documentation/automation routers without duplicate sources of truth.
+Guide an AI agent through deciding whether work merits reuse, strengthening the existing owner or identifying a genuine skill gap, packaging validated improvements, and feeding issue-resolution learning back into a compounding cross-project capability library.
 
 ## Transfer manifest
 

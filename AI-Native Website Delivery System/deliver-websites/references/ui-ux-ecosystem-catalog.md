@@ -1,16 +1,34 @@
 # UI/UX ecosystem catalogue
 
-This catalogue helps a non-specialist and an AI agent find credible tools without treating any fashionable stack as universal. It is a shortlist generator, not a lock file. Before selection, verify current version, maintenance, licence, accessibility, pricing, hosting constraints, security posture, and official documentation.
+This catalogue helps a non-specialist and an AI agent find credible **research, patterns, inspiration, and tools** without treating any fashionable stack—or any named brand site—as universal law. It is a shortlist generator and research router, not a lock file and not a brand kit.
+
+Before selection, verify current version, maintenance, licence, accessibility, pricing, hosting constraints, security posture, and official documentation. Never copy another organisation's identity, wording, distinctive layout, code, or artwork.
+
+For **one route** (longread, principles, essay, landing slice), also read `single-page-craft.md`.
 
 ## Selection rule
 
-1. Start from the required journey and architecture profile.
+1. Start from the required journey and architecture profile (or single-page job).
 2. Reuse the consuming project's established system when it passes the quality gates.
-3. For each relevant layer, shortlist at most three options: simplest fit, strongest accessible ecosystem, and credible alternative.
-4. Explain business impact, cost floor, scalability, portability, AI-agent editability, and exit path.
-5. Record the selected source, version, licence, reason, rejected finalists, and review trigger.
+3. Consult research/pattern sources below to name the UX problem before picking a library.
+4. For each relevant layer, shortlist at most three options: simplest fit, strongest accessible ecosystem, and credible alternative.
+5. Explain business impact, cost floor, scalability, portability, AI-agent editability, and exit path.
+6. Record the selected source, version, licence, reason, rejected finalists, and review trigger in the **consuming project**.
 
 “AI can write the code” reduces implementation labour; it does not remove accessibility, licence, security, performance, maintainability, content, or operational risk. Prefer open files, standard formats, source-controlled components, clear APIs, and replaceable modules over opaque click-only systems.
+
+## Job → research first
+
+| Decision you must make | Start here | Then shortlist tools in |
+|---|---|---|
+| Page type / IA | `page-system.md`, `single-page-craft.md` | Architecture and content delivery |
+| Hierarchy, measure, CTA count | Research & standards + Laws of UX | Styling / components |
+| Long-form reading comfort | Single-page craft + typography research | Styling tokens; content frameworks |
+| Component behaviour / a11y | WCAG, APG, Inclusive Components | Accessible primitives |
+| Motion / delight vs noise | web.dev / WCAG motion; reduced-motion | Motion libraries (only if justified) |
+| Visual inspiration without cloning | Inspiration galleries (study patterns) | Marketing/effect galleries selectively |
+| Performance / CWV | web.dev, Lighthouse docs | Hosting + image strategy |
+| Which library for this stack | Tables below | Record rejection reasons in project |
 
 ## Architecture and content delivery
 
@@ -56,17 +74,55 @@ This catalogue helps a non-specialist and an AI agent find credible tools withou
 | Discussion/comments | [GitHub Discussions](https://docs.github.com/en/discussions), [giscus](https://giscus.app/), [utterances](https://utteranc.es/) | Early community without a custom social backend | Platform identity, moderation, public data, accessibility and migration |
 | Hosting | [GitHub Pages](https://docs.github.com/en/pages), [Cloudflare Pages](https://developers.cloudflare.com/pages/), [Vercel](https://vercel.com/docs), [Netlify](https://docs.netlify.com/), [Cloud Run](https://cloud.google.com/run/docs) | Match static/runtime needs, cost, region and existing automation | Pricing and limits change; deployment uses the dedicated deployment asset |
 
-## Design research and inspiration
+## Design research, standards, and inspiration
 
-Use these to study patterns, not copy identity, wording, layout, code, or artwork:
+Use these to **study patterns and evidence**, not to copy identity, wording, distinctive layout, code, or artwork. Prefer primary research and standards over blog summaries when making accessibility or legal-adjacent decisions.
+
+### Research and standards (prefer first)
+
+| Source | Use for |
+|---|---|
+| [MDN Web Docs](https://developer.mozilla.org/) | Platform behaviour, HTML/CSS/JS correctness |
+| [W3C WAI / WCAG 2.2](https://www.w3.org/WAI/standards-guidelines/wcag/) | Accessibility requirements and success criteria |
+| [ARIA Authoring Practices Guide (APG)](https://www.w3.org/WAI/ARIA/apg/) | Keyboard patterns for widgets |
+| [web.dev](https://web.dev/) | Core Web Vitals, performance, modern HTML/CSS patterns |
+| [NN/g (Nielsen Norman Group)](https://www.nngroup.com/articles/) | Evidence-oriented UX heuristics and research summaries |
+| [Laws of UX](https://lawsofux.com/) | Named cognitive/interaction principles (Fitts, Hick, …) as decision labels |
+| [Inclusive Components](https://inclusive-components.design/) | Accessible component pattern write-ups |
+| [Adobe Spectrum / research notes](https://spectrum.adobe.com/) | Dense design-system thinking (adapt; do not clone) |
+| [Material Design guidelines](https://m3.material.io/) | Interaction and layout guidance when useful—not mandatory styling |
+| [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) | Platform convention reference for native-like expectations |
+
+### Pattern and editorial craft
+
+| Source | Use for |
+|---|---|
+| [Smashing Magazine](https://www.smashingmagazine.com/) | Practical UI/UX and front-end craft articles |
+| [A List Apart](https://alistapart.com/) | Content, design, and web practice essays |
+| [CSS-Tricks](https://css-tricks.com/) | Layout and CSS technique discovery (verify against current MDN) |
+| [Every Layout](https://every-layout.dev/) | Composable layout primitives (stack, cluster, sidebar, …) |
+| [Typographic scale / measure guides](https://web.dev/articles/learn-css) | Reading comfort, type, and layout fundamentals on web.dev Learn CSS |
+
+### Visual and product-flow inspiration (pattern study only)
 
 - [Awwwards](https://www.awwwards.com/), [SiteInspire](https://www.siteinspire.com/), [Land-book](https://land-book.com/), [One Page Love](https://onepagelove.com/), [Lapa Ninja](https://www.lapa.ninja/) — visual/page-pattern discovery.
 - [Mobbin](https://mobbin.com/) — product-flow pattern research; access/pricing may apply.
+- [Page Flows](https://pageflows.com/) — user-flow screenshots when licensed access exists.
+- [Refero](https://refero.design/) — web/mobile UI reference when access exists.
+
+### Technology radar and templates
+
 - [Thoughtworks Technology Radar](https://www.thoughtworks.com/radar) — opinionated, dated technology guidance.
-- [Hugging Face Hub](https://huggingface.co/docs/hub/index) — searchable assets, cards, collections and live demos.
-- [Vercel Templates](https://vercel.com/templates) — actionable template discovery and deployment pathways.
-- [Simon Willison](https://simonwillison.net/) — searchable, tagged, practical publishing with durable URLs.
-- [Stripe Engineering](https://stripe.com/blog/engineering) — evidence-led explanation of what, how, and why.
+- [Hugging Face Hub](https://huggingface.co/docs/hub/index) — searchable model/demo cards when the page includes live AI proof.
+- [Vercel Templates](https://vercel.com/templates), [Astro themes](https://astro.build/themes/) — actionable starters; strip identity before reuse.
+- Practical publishing craft examples (study structure, not brand): evidence-led engineering blogs and durable personal knowledge sites with clear URLs and provenance—evaluate freshness yourself.
+
+### Anti-patterns for research use
+
+- Do not treat a gallery winner as proof of accessibility, performance, or maintainability.
+- Do not cite unread books or LLM-suggested bibliographies as grounding for design decisions.
+- Do not paste another site's distinctive composition into a different brand and call it “best practice.”
+- Do not add effect libraries to satisfy novelty when the page job is reading or deciding.
 
 ## Quality and governance toolchain
 

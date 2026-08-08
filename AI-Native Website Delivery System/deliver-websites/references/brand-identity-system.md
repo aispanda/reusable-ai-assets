@@ -18,13 +18,35 @@ Record one concise answer for each item:
 | Rights | Origin, creator/tool, licence, font/icon/image rights and trademark/search status |
 | Owner | Human approver and source-of-truth location |
 
+## Vibe / feeling intake (before visuals)
+
+When the brand starts from emotion, metaphor or flow writing—or the product is an app that needs mission/vision before a site—use **RA-005** `rapid-ai-solution-delivery/references/seed-idea-management.md`, `brand-voice-identity-flow.md`, and `VIBE_IDENTITY_BRIEF.template.md` first. Keep project-specific transcripts gitignored when publishing the consumer repo.
+
+Map the accepted vibe brief into this contract:
+
+| Vibe brief field | Brand contract field |
+|---|---|
+| Mission + audiences | Promise |
+| Feeling / pulse / voice | Personality + Voice |
+| Name system | Name |
+| Visual metaphor + iconography | Logo system direction |
+| Colour / type feeling | Visual tokens (still pre-hex / pre-font-file) |
+| Public vs inner lexicon | Voice + Rights (what may appear publicly) |
+
+Do not invent sacred or culturally loaded public copy from an inner metaphor without an explicit owner decision in the vibe brief.
+
+## Emotion → interface
+
+After the vibe brief is accepted, fill [`emotion-to-interface.md`](emotion-to-interface.md) so target feelings become tokens, motion, imagery and microcopy. Strategy without this map produces generic UI.
+
 ## Efficient workflow
 
-1. Approve promise, audience and personality before visual exploration.
-2. Produce at most three meaningfully different directions; explain the business signal and accessibility risk of each.
-3. Select one direction, then derive responsive logo variants and interface tokens from it.
-4. Use code/CSS for interface structure and deterministic marks; use raster generation only for imagery where it adds value. Never auto-trace or imitate a third-party logo.
-5. Store editable source, export sizes, provenance and usage rules together. Keep project identity out of this reusable package.
+1. Approve promise, audience and personality before visual exploration (or accept a vibe identity brief that already carries them).
+2. Map 2–3 target feelings to first-viewport and key page moments (`emotion-to-interface.md`).
+3. Produce at most three meaningfully different directions; explain the business signal and accessibility risk of each.
+4. Select one direction, then derive responsive logo variants and interface tokens from it.
+5. Use code/CSS for interface structure and deterministic marks; use raster generation only for imagery where it adds value. Never auto-trace or imitate a third-party logo.
+6. Store editable source, export sizes, provenance and usage rules together. Keep project identity out of this reusable package.
 
 ## Acceptance checks
 

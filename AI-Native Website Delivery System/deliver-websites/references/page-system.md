@@ -22,7 +22,7 @@ This is a starting hypothesis, not a quota. A focused one-page launch may need f
 |---|---|---|
 | Landing | A visitor must understand value and choose a next action | Hero, credibility, pathways, objection handling, CTA |
 | Collection/hub | Several related items need discovery | Intro, filters/categories when justified, cards/list, pagination or load strategy |
-| Detail/long-form | One item needs depth and sharing | Clear title/deck, provenance, body, media, related items, next action |
+| Detail/long-form | One item needs depth and sharing | Clear title/deck, provenance, body, media, related items, next action — see `single-page-craft.md` for longread, principles, essay and staged-explainer craft |
 | Listing/search | Users compare or locate records | Query/filter state, results count, sort, responsive table/cards, empty/error states |
 | Conversion/form | A user submits information or commits | Expectation, minimal fields, validation, privacy, confirmation, recovery |
 | Trust/policy | Users assess legitimacy or constraints | Plain-language summary, owner/date, source or policy detail, contact/correction path |

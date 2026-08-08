@@ -28,6 +28,6 @@
 - First-slice brief contains inputs, outputs, acceptance tests, failure/security cases, exclusions and verification commands.
 - Required decisions are accepted or explicitly defaulted; unresolved blockers are named.
 - Automation router and implementation folders exist.
-- Every active Markdown document is registered; local links resolve; the current handover is fresh.
+- Every active Markdown document is registered; local links resolve; the current handover is fresh and records repository/HEAD/deploy alignment plus authority boundaries.
 - No proposed material decision or unfinished template placeholder remains in an activated build document.
 - Implementation, commit and deployment authority remain separate.

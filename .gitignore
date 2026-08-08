@@ -26,3 +26,15 @@ __pycache__/
 Thumbs.db
 .idea/
 .vscode/
+
+# Nested former repos / local-only drafts
+.git-nested-deployment-automation-backup/
+WebPage-Development/
+
+# Extra generated/workspace output
+**/node_modules/
+**/dist/
+**/dist-public/
+**/generated/
+**/test-results/
+**/playwright-report/

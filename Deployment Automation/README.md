@@ -6,6 +6,8 @@ A reusable wrapper for controlled Google Cloud Build deployments to Cloud Run:
 
 The script never commits, pushes, changes IAM, changes infrastructure settings or executes rollback. Its only production mutation is `gcloud builds submit`, available through `--deploy` after the typed gate.
 
+Custom hostnames are a **separate** zero-cost flow: [`CUSTOM_DOMAIN.md`](CUSTOM_DOMAIN.md) (Cloud Run domain mapping only — no ALB). Use `scripts/custom_domain/domain_map.sh` and `apply_dns.py`. Deferred enhancements: backlog table in `CUSTOM_DOMAIN.md` (CD-B1…B5).
+
 ## Setup
 
 Copy `deployment.config.example` into the consuming project as `deployment.config`, replace every value and keep that project-owned file outside this reusable package.
@@ -17,6 +19,10 @@ DEPLOY_CONFIG="/path/to/deployment.config" bash "/path/to/deployment-automation/
 ```
 
 Use `--deploy --dry-run` to show the gate and command without submitting anything.
+
+## Custom domains
+
+Custom hostnames are a **separate** procedure from `--deploy`. See [`CUSTOM_DOMAIN.md`](CUSTOM_DOMAIN.md) and copy [`custom-domain.config.example`](custom-domain.config.example) into the project. Registrar is project-chosen (Spaceship is one option among many). Cloud mutation uses approval token `DOMAIN`.
 
 ## Approval and retry safety
 
@@ -45,7 +51,7 @@ Configuration is restricted data, never sourced or evaluated. Use unquoted `KEY=
 | `DEPLOY_SERVICE` | Cloud Run service name |
 | `DEPLOY_REGION` | Cloud Run region |
 | `DEPLOY_BRANCH` | required local and remote branch |
-| `DEPLOY_DOMAIN` | `AUTO` for the Cloud Run origin, or a live origin without trailing slash |
+| `DEPLOY_DOMAIN` | `AUTO` for the Cloud Run origin, or a live origin without trailing slash (set to the custom HTTPS origin after domain cutover) |
 | `BUILD_WORKING_DIRECTORY` | build directory relative to repository root |
 | `BUILD_COMMAND` | explicitly trusted production-build command |
 | `CLOUD_BUILD_CONFIG` | Cloud Build YAML path relative to repository root |

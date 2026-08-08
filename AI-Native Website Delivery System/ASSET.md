@@ -5,7 +5,7 @@
 | Category | Engineering / Web Delivery |
 | Select when | A person or team has an idea for a website on any topic and needs business-friendly help to define the purpose, audiences, brand, content, staged capabilities, architecture, UI/UX, build, QA, launch, or later evolution. |
 | Entry point | `deliver-websites/SKILL.md` |
-| Status | Pilot-ready v1.2; expanded independent evaluation pending |
+| Status | Pilot-ready v1.7; writing-craft (typed prose skill); emotion→interface brand bridge; independent evaluation pending |
 
 ## Outcome
 
@@ -28,12 +28,14 @@ It composes with, but does not duplicate:
 - architecture and page-system selection rules;
 - project profile and brief contracts;
 - responsive design and component guidance;
+- single-page / longread craft, **writing craft** (typed public prose), topic-neutral UI/UX research–pattern–tool router, and a mandatory page-craft decision/evolution loop;
 - business-friendly stakeholder intake, strategy and staged-capability inventory;
 - broad, refreshable catalogue of frameworks, design systems, components, inspiration sources, and QA tools;
 - one-profile generation/validation contract;
 - static/content starter and scaffolding tools;
 - SEO, social-preview, sitemap, accessibility, performance, and release audits;
-- launch gates and risk register.
+- launch gates and risk register;
+- custom-domain launch readiness (registrar-agnostic; mapping executed by RA-002).
 
 ### Project profile
 
@@ -59,9 +61,14 @@ No real organisation name, domain, route, editorial copy, allegation, person, sc
 | `deliver-websites/assets/templates/` | Brief, profile, decision, content, and release templates | Reusable core copied into a project profile |
 | `deliver-websites/references/stakeholder-intake.md` | Short business-friendly decision packets and answer format | Reusable core |
 | `deliver-websites/references/strategy-capability-inventory.md` | Universal staged website product/capability menu | Reusable core |
-| `deliver-websites/references/ui-ux-ecosystem-catalog.md` | Refreshable framework, component, design, inspiration, QA and delivery option catalogue | Reusable core |
+| `deliver-websites/references/ui-ux-ecosystem-catalog.md` | Topic-neutral research, inspiration, pattern and tool shortlist router (no brand kit) | Reusable core |
+| `deliver-websites/references/page-craft-decision-loop.md` | Context→research→decide→apply→feedback→strengthen loop for every page consultation | Reusable core |
+| `deliver-websites/references/writing-craft.md` | Universal prose practices + content-type recipes (insight, principle-sutra, lede, proof, microcopy, policy, decision-packet) | Reusable core |
+| `deliver-websites/references/single-page-craft.md` | One-route longread, principles, essay, staged explainer and page-improvement craft | Reusable core |
 | `deliver-websites/references/brand-identity-system.md` | Brand promise, voice, logo system, visual identity, rights and acceptance contract | Reusable core |
+| `deliver-websites/references/emotion-to-interface.md` | Map accepted emotional jobs to tokens, motion, imagery, microcopy and page moments | Reusable core |
 | `deliver-websites/references/issue-resolution-patterns.md` | Reusable failure patterns, resolutions and automation-promotion rule | Reusable core |
+| `deliver-websites/references/custom-domain-launch.md` | Custom-domain readiness; registrar-agnostic handoff to RA-002 | Reusable core |
 | `deliver-websites/references/project-profile-contract.md` | One-source contract for routes, navigation, metadata, sharing, sitemap and modules | Reusable core |
 | `deliver-websites/assets/templates/SITE_LAUNCH_INVENTORY.md` | Token-efficient project strategy, capability, route and decision record | Reusable core copied into a project profile |
 | `deliver-websites/assets/templates/COMPONENT_REGISTRY.xlsx` | Generic page, component, and route contracts | Reusable core copied and adapted per project |

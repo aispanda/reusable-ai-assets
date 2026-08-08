@@ -72,6 +72,9 @@ Test representative pages at narrow mobile, tablet, laptop, and wide desktop wid
 
 - the first screen answers what this is, for whom, and what to do;
 - hierarchy, spacing, line length, and imagery feel intentional;
+- longread intro, headings and body share one reading column (~66ch prose)—no artificial heading `max-width` far narrower than body measure, and no full-shell intro misaligned from a TOC+article grid (`single-page-craft.md` / `page-craft-decision-loop.md`);
+- sticky-header deep links: TOC jumps clear the header (`scroll-margin-top`);
+- mobile longread: jump/TOC control usable at narrow widths (WEB-029);
 - copy is accurate, concise, and not placeholder text;
 - image crops work at all breakpoints;
 - keyboard-only use reaches and activates everything;
@@ -91,6 +94,7 @@ Test representative pages at narrow mobile, tablet, laptop, and wide desktop wid
 - approved promise, personality, voice and visual-token source are recorded;
 - logo/wordmark/compact/monochrome variants work at their intended sizes;
 - public name, domain, metadata, favicon and social preview agree;
+- if a custom domain is in scope: platform origin verified first; canonical host and redirect policy recorded; DNS/cloud domain approvals separate; cutover verified on the custom HTTPS origin (see `custom-domain-launch.md`);
 - provenance and usage rights exist for fonts, icons, logos and imagery;
 - a human owner approves confusing-similarity, cultural-fit and public-claim risk.
 

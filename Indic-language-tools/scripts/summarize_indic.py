@@ -8,7 +8,21 @@ def get_default_prompt(source_lang: str, target_lang: str) -> str:
 You are an expert at translating and summarizing {source_lang} into {target_lang}.
 Read the provided transcript and produce a highly detailed, comprehensive {target_lang} summary.
 Ensure all critical allegations, nuance, and culturally specific terms are captured accurately.
-Do not invent information. Do not artificially truncate the summary.
+Do not invent information.
+
+You MUST structure your response EXACTLY with the following 4 markdown sections:
+
+## Tags
+[Provide a comma-separated list of relevant thematic tags]
+
+## Quotes
+[Extract and translate 2-3 of the most critical quotes from the transcript that support the tags]
+
+## Comprehensive Summary
+[Provide the full, detailed narrative summary of the transcript. There is no word limit.]
+
+## Short Summary
+[Provide a concise TL;DR summary of approximately 150 words.]
 """
 
 def summarize_file(filepath: Path, model: str, prompt: str) -> str:

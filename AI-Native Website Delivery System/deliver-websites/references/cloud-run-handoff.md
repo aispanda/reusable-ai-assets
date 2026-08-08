@@ -50,7 +50,7 @@ Treat these as separate decisions:
 1. publish or update source in its configured repository;
 2. create or modify cloud infrastructure and IAM;
 3. deploy a production revision;
-4. change DNS or a custom-domain mapping.
+4. change DNS or a custom-domain mapping (see `custom-domain-launch.md`, then RA-002 `CUSTOM_DOMAIN.md`).
 
 A request to deploy does not silently authorise committing private work, making a repository public, widening ingress or changing DNS. Capture the approver and exact revision for each applicable gate.
 

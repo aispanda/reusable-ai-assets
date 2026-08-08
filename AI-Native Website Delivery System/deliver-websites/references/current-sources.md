@@ -6,6 +6,10 @@ Use `ui-ux-ecosystem-catalog.md` for the broad option inventory. This file recor
 
 | Topic | Primary source |
 |---|---|
+| Typography / measure | <https://web.dev/learn/design/typography> |
+| Long-form formatting (scan, TOC, checkpoints) | <https://www.nngroup.com/articles/formatting-long-form-content/> |
+| In-page links / TOC | <https://www.nngroup.com/articles/in-page-links-content-navigation/> |
+| How people read online | <https://www.nngroup.com/articles/how-people-read-online/> |
 | Open Graph protocol | <https://ogp.me/> |
 | Google sitemap format | <https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap> |
 | Google canonical guidance | <https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls> |

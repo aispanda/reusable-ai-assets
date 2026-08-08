@@ -17,6 +17,15 @@ EXCLUDED_DIRS = {"archive", "archived", "history", "generated", "tmp", "node_mod
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 PLACEHOLDER_RE = re.compile(r"\[([A-Z][^\]\n]{1,100})\](?!\()")
 HANDOVER_DATE_RE = re.compile(r"\|\s*Last verified\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|", re.I)
+PROTOCOL_MARKERS = ("## Required handover", "## Authority boundaries", "## Required handback")
+HANDOVER_STATE_LABELS = (
+    "Repository / branch",
+    "Local HEAD",
+    "Deployed revision",
+    "Matches deploy?",
+    "## Authorized scope",
+    "## Do not",
+)
 
 
 def active_markdown(root: Path) -> list[Path]:
@@ -93,9 +102,20 @@ def main() -> int:
             gaps.append(f"UNREGISTERED {path.relative_to(root).as_posix()}")
         gaps.extend(local_link_gaps(path, root))
 
+    protocol = root / "docs/AI_HANDOVER_PROTOCOL.md"
+    if protocol.is_file():
+        protocol_text = protocol.read_text(encoding="utf-8")
+        for marker in PROTOCOL_MARKERS:
+            if marker not in protocol_text:
+                gaps.append(f"HANDOVER_PROTOCOL_MISSING {marker}")
+
     handover = root / "docs/AI_HANDOVER.md"
     if handover.is_file() and args.handover_max_age_days >= 0:
-        match = HANDOVER_DATE_RE.search(handover.read_text(encoding="utf-8"))
+        handover_text = handover.read_text(encoding="utf-8")
+        for label in HANDOVER_STATE_LABELS:
+            if label not in handover_text:
+                gaps.append(f"HANDOVER_STATE_MISSING {label}")
+        match = HANDOVER_DATE_RE.search(handover_text)
         if not match:
             gaps.append("HANDOVER_DATE_MISSING docs/AI_HANDOVER.md")
         else:

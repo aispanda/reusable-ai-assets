@@ -29,6 +29,7 @@ STANDARD = {
     "docs/DATA_MODEL.md": "DATA_MODEL.template.md",
     "docs/RESEARCH_SYNTHESIS.md": "RESEARCH_SYNTHESIS.template.md",
     "docs/SEED_IDEAS.md": "SEED_IDEAS.template.md",
+    "docs/seeds/README.md": "SEEDS_FOLDER_README.template.md",
 }
 CONTROLLED = {
     "docs/RISK_SECURITY_REGISTER.md": "RISK_SECURITY_REGISTER.template.md",
@@ -52,6 +53,7 @@ OWNERSHIP = {
     "DATA_MODEL.md": "Logical entities, meaning, and relationships",
     "RESEARCH_SYNTHESIS.md": "Source-backed research findings",
     "SEED_IDEAS.md": "Uncommitted opportunities and revisit triggers",
+    "docs/seeds/README.md": "Deep seed files (raw capture) and naming rules",
     "RISK_SECURITY_REGISTER.md": "Material risk scenarios and controls",
     "COMPLIANCE_EVIDENCE.md": "Obligations, controls, and proof",
     "AUTOMATION_ROUTER.md": "Maintained scripts and safety boundaries",

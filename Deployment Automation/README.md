@@ -18,6 +18,8 @@ DEPLOY_CONFIG="/path/to/deployment.config" bash "/path/to/deployment-automation/
 DEPLOY_CONFIG="/path/to/deployment.config" bash "/path/to/deployment-automation/deploy.sh" --verify
 ```
 
+On Windows, use Git Bash. If `bash` is not on the PowerShell `PATH`, invoke the installed executable explicitly, commonly `C:\Program Files\Git\bin\bash.exe`. Pass Windows configuration paths normally; the controller converts them when needed.
+
 Use `--deploy --dry-run` to show the gate and command without submitting anything.
 
 ## Custom domains
@@ -31,6 +33,8 @@ Custom hostnames are a **separate** procedure from `--deploy`. See [`CUSTOM_DOMA
 3. Use one visible deployment process and one approval channel.
 4. Accept only the exact token `DEPLOY`; do not infer approval.
 5. Do not report deployment as started until `submitting Cloud Build` and a Build ID appear.
+6. Give the foreground runner enough time for both preflight and Cloud Build; use at least a 15 minute command timeout when the calling tool imposes one.
+7. If the caller times out after submission, do not resubmit. Query Cloud Build by the exact commit SHA, then reconcile the image digest, serving revision, traffic and public route before deciding whether a retry is needed.
 
 An active AI task may relay an exact user-approved `DEPLOY` token through LF-only POSIX input in the same attached process. A foreground terminal is also valid. Never use a detached console or a pipeline that can append `\r`.
 
@@ -74,3 +78,4 @@ bash "./test.sh"
 ```
 
 The test uses a temporary repository and stubbed commands. It never contacts Google Cloud or deploys.
+Its Windows fixture stubs both `curl` and `curl.exe` because the deployment controller deliberately prefers the native executable when available.

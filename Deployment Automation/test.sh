@@ -119,7 +119,8 @@ if [[ -n "$fmt" ]]; then printf '%s' "${fmt//\%\{http_code\}/$code}"; fi
 exit "$curl_rc"
 STUB
 
-chmod +x "$BIN/build-ok" "$BIN/gcloud" "$BIN/curl"
+cp "$BIN/curl" "$BIN/curl.exe"
+chmod +x "$BIN/build-ok" "$BIN/gcloud" "$BIN/curl" "$BIN/curl.exe"
 
 printf '%s\n' 'placeholder' > "$REPO/app/placeholder.txt"
 printf '%s\n' 'steps: []' > "$REPO/cloudbuild.yaml"

@@ -8,7 +8,8 @@
 # Modes:
 #   --check    Preflight only. Deploys nothing.
 #   --deploy   Preflight → typed human gate → Cloud Build submit → verification → handover block.
-#   --verify   Post-deploy verification only (compares live state against current HEAD).
+#   --verify   Post-deploy verification only (compares live state against current HEAD,
+#              then reconciles Git and live Cloud Run before printing the handover).
 #
 # Optional flags (repeatable, per release):
 #   --route <path>                        Live route for infra/content checks (default: /)
@@ -30,6 +31,13 @@
 
 set -euo pipefail
 
+# PowerShell can launch Git's bash.exe directly without Git's /usr/bin and /bin
+# entries in PATH. Restore them before using standard POSIX utilities; this is
+# harmless on ordinary Linux/macOS shells and keeps Windows tool paths after it.
+if [[ -d /usr/bin ]]; then
+  export PATH="$PATH:/usr/bin:/bin"
+fi
+
 # --- State -------------------------------------------------------------------
 MODE=""
 DRY_RUN=0
@@ -38,9 +46,12 @@ FULL_SHA=""
 BUILD_ID=""
 REVISION=""
 IMAGE_DIGEST=""
+TRAFFIC_REV=""
+TRAFFIC_PCT=""
 VERDICT_DEPLOY="NOT RUN"
 VERDICT_INFRA="NOT RUN"
 VERDICT_CONTENT="NOT REQUESTED"
+VERDICT_RECONCILE="NOT RUN"
 PREFLIGHT_OK=0
 WARNINGS=()
 
@@ -224,7 +235,7 @@ Expected: clean (commit or stash first)"
   head_sha="$(git rev-parse HEAD)"
   remote_sha="$(git rev-parse "origin/$DEPLOY_BRANCH")"
   [[ "$head_sha" == "$remote_sha" ]] \
-    || die "local HEAD != origin/$DEPLOY_BRANCH. Observed HEAD: $head_sha, origin/$DEPLOY_BRANCH: $remote_sha. Push or rebase first"
+    || die "local HEAD != origin/$DEPLOY_BRANCH. Observed HEAD: $head_sha, origin/$DEPLOY_BRANCH: $remote_sha. This toolkit never pushes, and deployment approval does not authorize source publication. Confirm the exact remote URL, branch, visibility, commit author, authenticated Git principal, revision and sensitive-data scope; obtain explicit publication approval; then publish through the approved Git workflow and rerun"
   pass "HEAD == origin/$DEPLOY_BRANCH: $head_sha"
 
   # 5. full SHA
@@ -238,6 +249,12 @@ Expected: clean (commit or stash first)"
   ( cd "$BUILD_WORKING_DIRECTORY" && bash -c "$BUILD_COMMAND" ) \
     || die "production build failed (cd '$BUILD_WORKING_DIRECTORY' && $BUILD_COMMAND). Fix the build first"
   pass "production build: exit 0"
+  local post_build_dirty; post_build_dirty="$(git status --porcelain)"
+  [[ -z "$post_build_dirty" ]] \
+    || die "production build changed tracked or untracked repository content. Observed changes:
+$post_build_dirty
+Expected: build leaves the verified commit tree clean so Cloud Build uploads exactly the revision named by the image tag"
+  pass "post-build working tree: clean"
 
   # 7. GCP project
   local gcp_project
@@ -265,7 +282,7 @@ Expected: clean (commit or stash first)"
   gcloud projects describe "$PROJECT" >/dev/null 2>&1 \
     || die "cannot access project $PROJECT with active account $account"
   local billing_enabled
-  billing_enabled="$(gcloud billing projects describe "$PROJECT" --format='value(billingEnabled)' 2>/dev/null || true)"
+  billing_enabled="$(gcloud billing projects describe "$PROJECT" --billing-project "$PROJECT" --format='value(billingEnabled)' 2>/dev/null || true)"
   [[ "$billing_enabled" == "True" || "$billing_enabled" == "true" ]] \
     || die "billing is not enabled for project $PROJECT"
   pass "project access and billing confirmed"
@@ -394,7 +411,7 @@ deploy() {
     echo "Console: https://console.cloud.google.com/cloud-build/builds/${BUILD_ID:-unknown}?project=$PROJECT"
     echo "Review the Cloud Build log before retrying."
     echo "------------------------------------------------------------------"
-    print_handover
+    emit_handover
     exit 1
   fi
   [[ -n "$BUILD_ID" ]] || die "build reported SUCCESS but no build ID could be parsed from the log — stopping for manual review"
@@ -464,15 +481,14 @@ infra_verify() {
   fi
 
   # 4. configured traffic allocation on this revision
-  local traffic_rev traffic_pct
-  traffic_rev="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" \
+  TRAFFIC_REV="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" \
     --format='value(status.traffic[0].revisionName)' 2>/dev/null || true)"
-  traffic_pct="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" \
+  TRAFFIC_PCT="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" \
     --format='value(status.traffic[0].percent)' 2>/dev/null || true)"
-  if [[ "$traffic_rev" == "$REVISION" && "$traffic_pct" == "$EXPECTED_TRAFFIC_PERCENT" ]]; then
+  if [[ "$TRAFFIC_REV" == "$REVISION" && "$TRAFFIC_PCT" == "$EXPECTED_TRAFFIC_PERCENT" ]]; then
     pass "infra: traffic $EXPECTED_TRAFFIC_PERCENT% -> $REVISION"
   else
-    echo "INFRA-FAIL: traffic is ${traffic_pct:-?}% -> ${traffic_rev:-?}, expected $EXPECTED_TRAFFIC_PERCENT% -> $REVISION"; failures=$((failures+1))
+    echo "INFRA-FAIL: traffic is ${TRAFFIC_PCT:-?}% -> ${TRAFFIC_REV:-?}, expected $EXPECTED_TRAFFIC_PERCENT% -> $REVISION"; failures=$((failures+1))
   fi
 
   # 5. live route responds 200
@@ -635,6 +651,63 @@ rollback_hint() {
   fi
 }
 
+# --- Final-report reconcile — re-read Git and live Cloud Run -------------------
+# Captured facts from this run are compared to a fresh query immediately before
+# the handover is printed. Concurrent commits or rollouts must not be reported
+# as the current release.
+reconcile_report() {
+  VERDICT_RECONCILE="STALE"
+  local failures=0 live_head live_remote live_revision live_traffic_rev live_traffic_pct live_digest
+
+  [[ -n "$FULL_SHA" ]] || { echo "RECONCILE-FAIL: no commit SHA was captured for this report"; echo "REPORT RECONCILE: STALE"; return 0; }
+
+  git fetch --quiet origin "$DEPLOY_BRANCH" \
+    || die "git fetch origin $DEPLOY_BRANCH failed during report reconcile. Cannot prove the handover is current"
+  live_head="$(git rev-parse HEAD)" \
+    || die "cannot resolve HEAD SHA during report reconcile"
+  live_remote="$(git rev-parse "origin/$DEPLOY_BRANCH")" \
+    || die "cannot resolve origin/$DEPLOY_BRANCH during report reconcile"
+  if [[ "$live_head" != "$FULL_SHA" ]]; then
+    echo "RECONCILE-FAIL: HEAD moved from $FULL_SHA to $live_head"
+    failures=$((failures+1))
+  fi
+  if [[ "$live_remote" != "$FULL_SHA" ]]; then
+    echo "RECONCILE-FAIL: origin/$DEPLOY_BRANCH is $live_remote, handover SHA is $FULL_SHA"
+    failures=$((failures+1))
+  fi
+
+  if [[ -n "$REVISION" ]]; then
+    live_revision="$(gcloud run revisions list --service "$SERVICE" --region "$REGION" --project "$PROJECT" \
+      --limit 1 --sort-by='~creationTime' --format='value(metadata.name)' 2>/dev/null || true)"
+    if [[ "$live_revision" != "$REVISION" ]]; then
+      echo "RECONCILE-FAIL: live revision is '${live_revision:-unknown}', handover revision is '$REVISION'"
+      failures=$((failures+1))
+    fi
+    live_traffic_rev="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" \
+      --format='value(status.traffic[0].revisionName)' 2>/dev/null || true)"
+    live_traffic_pct="$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" \
+      --format='value(status.traffic[0].percent)' 2>/dev/null || true)"
+    if [[ "$live_traffic_rev" != "${TRAFFIC_REV:-$REVISION}" || "$live_traffic_pct" != "${TRAFFIC_PCT:-$EXPECTED_TRAFFIC_PERCENT}" ]]; then
+      echo "RECONCILE-FAIL: live traffic is ${live_traffic_pct:-?}% -> ${live_traffic_rev:-?}, handover captured ${TRAFFIC_PCT:-$EXPECTED_TRAFFIC_PERCENT}% -> ${TRAFFIC_REV:-$REVISION}"
+      failures=$((failures+1))
+    fi
+  fi
+
+  if [[ -n "$IMAGE_DIGEST" ]]; then
+    live_digest="$(gcloud container images describe "$IMAGE_REPO:$FULL_SHA" --project "$PROJECT" \
+      --format='value(image_summary.digest)' 2>/dev/null || true)"
+    if [[ "$live_digest" != "$IMAGE_DIGEST" ]]; then
+      echo "RECONCILE-FAIL: live image digest is '${live_digest:-unknown}', handover digest is '$IMAGE_DIGEST'"
+      failures=$((failures+1))
+    fi
+  fi
+
+  if [[ "$failures" -eq 0 ]]; then
+    VERDICT_RECONCILE="PASS"
+  fi
+  echo "REPORT RECONCILE: $VERDICT_RECONCILE"
+}
+
 # --- Handover block — printed only --------------------------------------------
 print_handover() {
   local mode_label="${MODE#--}"
@@ -659,7 +732,14 @@ print_handover() {
     echo "Warnings          : none"
   fi
   [[ -n "$LOG_FILE" ]] && echo "Build log         : $LOG_FILE"
+  reconcile_report
   echo "======================================================================================================================"
+}
+
+emit_handover() {
+  print_handover
+  [[ "$VERDICT_RECONCILE" == "PASS" ]] \
+    || die "report reconcile is STALE — Git or live Cloud Run state moved after the captured facts; re-run --verify and do not report the previous SHA, revision, traffic or image"
 }
 
 # --- Main ----------------------------------------------------------------------
@@ -676,11 +756,11 @@ main() {
       deploy
       resolve_auto_domain
       infra_verify
-      [[ "$VERDICT_INFRA" == "PASS" ]] || { print_handover; die "infrastructure verification failed — see INFRA-FAIL lines above. Deployment succeeded but live state is unverified"; }
+      [[ "$VERDICT_INFRA" == "PASS" ]] || { emit_handover; die "infrastructure verification failed — see INFRA-FAIL lines above. Deployment succeeded but live state is unverified"; }
       content_verify
       bundle_evidence
       rollback_hint
-      print_handover
+      emit_handover
       pass "deployment complete and verified"
       ;;
     --verify)
@@ -691,11 +771,11 @@ main() {
       resolve_auto_domain
       info "verifying live state against HEAD SHA: $FULL_SHA"
       infra_verify
-      [[ "$VERDICT_INFRA" == "PASS" ]] || { print_handover; die "infrastructure verification failed"; }
+      [[ "$VERDICT_INFRA" == "PASS" ]] || { emit_handover; die "infrastructure verification failed"; }
       content_verify
       bundle_evidence
       rollback_hint
-      print_handover
+      emit_handover
       pass "verification complete"
       ;;
   esac

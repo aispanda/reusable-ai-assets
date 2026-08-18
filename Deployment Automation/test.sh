@@ -168,6 +168,16 @@ grep -Fq "build-ok --production" "$CALLS" || fail "configured build command was 
 ! grep -Fq "builds submit" "$CALLS" || fail "--check submitted a build"
 pass "configured preflight and build command"
 
+MUTATING_CONFIG="$CONFIG_DIR/mutating-build.config"
+sed 's|^BUILD_COMMAND=.*|BUILD_COMMAND=build-ok --production && echo changed > ../app/placeholder.txt|' "$VALID_CONFIG" > "$MUTATING_CONFIG"
+if run_from_repo "$MUTATING_CONFIG" --check > "$TEST_ROOT/mutating-build.log" 2>&1; then
+  fail "tracked production-build mutation was accepted"
+fi
+grep -Fq "production build changed tracked or untracked repository content" "$TEST_ROOT/mutating-build.log" || fail "post-build clean-tree failure was unclear"
+! grep -Fq "builds submit" "$CALLS" || fail "mutating build submitted a cloud build"
+git -C "$REPO" checkout --quiet -- app/placeholder.txt
+pass "post-build clean-tree gate"
+
 if command -v cygpath >/dev/null 2>&1; then
   WINDOWS_CONFIG="$(cygpath -w "$VALID_CONFIG")"
   run_from_repo "$WINDOWS_CONFIG" --check > "$TEST_ROOT/windows-path.log" 2>&1
@@ -229,8 +239,21 @@ grep -Fq "revision digest matches approved image digest ($EXPECTED_DIGEST)" "$TE
 grep -Fq "Image digest      : $EXPECTED_DIGEST" "$TEST_ROOT/verify.log" || fail "handover omitted the immutable digest"
 grep -Fq "gcloud container images describe $TEST_IMAGE:$EXPECTED_SHA" "$CALLS" || fail "exact approved tag was not resolved"
 grep -Fq "INFRA VERIFY      : PASS" "$TEST_ROOT/verify.log" || fail "stubbed infrastructure verification failed"
+grep -Fq "REPORT RECONCILE: PASS" "$TEST_ROOT/verify.log" || fail "stable standalone verify did not print REPORT RECONCILE: PASS"
 ! grep -Fq "builds submit" "$CALLS" || fail "--verify submitted a build"
 pass "configured standalone verification"
+
+: > "$CALLS"
+git -C "$REPO" commit --allow-empty --quiet -m "newer remote"
+git -C "$REPO" push --quiet origin main
+git -C "$REPO" reset --hard --quiet "$EXPECTED_SHA"
+if run_from_repo "$VALID_CONFIG" --verify > "$TEST_ROOT/stale-remote.log" 2>&1; then
+  fail "newer remote commit was reported as current"
+fi
+grep -Fq "REPORT RECONCILE: STALE" "$TEST_ROOT/stale-remote.log" || fail "newer remote commit did not print REPORT RECONCILE: STALE"
+grep -Fq "origin/main is" "$TEST_ROOT/stale-remote.log" || fail "stale remote diagnostic was unclear"
+git -C "$REPO" push --quiet --force origin main
+pass "stale remote commit rejected"
 
 : > "$CALLS"
 export ROUTE_RESPONSE_MODE=redirect-ok

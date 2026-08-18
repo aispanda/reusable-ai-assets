@@ -1,0 +1,48 @@
+{
+  "$schema": "https://example.invalid/interface-state-evidence-profile/v1",
+  "schemaVersion": "1.0",
+  "project": {
+    "label": "Generic consumer",
+    "repository": "<repository-url-or-local-identifier>",
+    "profileOwner": "<role>",
+    "lastReviewed": "YYYY-MM-DD"
+  },
+  "sourceOfTruth": {
+    "productionImplementation": ["<path-to-real-component-or-surface>"],
+    "styles": ["<path-to-production-style-entrypoint>"],
+    "executionRecord": "<link>",
+    "decisionRecord": "<link-or-none>"
+  },
+  "adapter": {
+    "kind": "<catalog-or-protected-development-route>",
+    "configPath": "<path>",
+    "storyOrFixtureRoot": "<path>",
+    "importsProductionStyles": true
+  },
+  "surfaces": [
+    {
+      "id": "surface-example",
+      "label": "Example surface",
+      "componentPath": "<path>",
+      "fixturePath": "<path>",
+      "contextPacket": "<path>",
+      "stateContract": "<path>",
+      "states": ["initial", "populated", "empty", "recoverable-error", "restricted", "success"]
+    }
+  ],
+  "verification": {
+    "install": "<command-or-not-applicable>",
+    "render": "<command>",
+    "interaction": "<command-or-manual-procedure>",
+    "accessibility": "<command-or-manual-procedure>",
+    "visual": "<command-or-manual-procedure>",
+    "build": "<command>",
+    "notes": "Each declared command must be run in the consumer environment and its result recorded separately."
+  },
+  "boundaries": {
+    "syntheticFixturesOnly": true,
+    "noCredentials": true,
+    "noProductionData": true,
+    "releaseRequiresSeparateApproval": true
+  }
+}

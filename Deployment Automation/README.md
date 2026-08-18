@@ -1,5 +1,11 @@
 # Deployment Automation
 
+## Start here
+
+- Deploy or decide the next deployment step: read the Preflight and this runbook only.
+- Create a branch, PR, merge, or release: complete the Preflight, then follow the relevant numbered step.
+- Review or improve this asset/process: read the full governance standard and this full asset before proposing changes.
+
 A reusable wrapper for controlled Google Cloud Build deployments to Cloud Run:
 
 `Preflight -> typed DEPLOY gate -> Cloud Build -> infrastructure/content verification -> handover`

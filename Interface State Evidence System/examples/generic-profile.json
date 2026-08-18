@@ -1,0 +1,58 @@
+{
+  "$schema": "https://example.invalid/interface-state-evidence-profile/v1",
+  "schemaVersion": "1.0",
+  "project": {
+    "label": "Example catalogue site",
+    "repository": "example/catalogue-site",
+    "profileOwner": "Interface steward",
+    "lastReviewed": "2026-08-18"
+  },
+  "sourceOfTruth": {
+    "productionImplementation": [
+      "src/components/ResourceCard.astro"
+    ],
+    "styles": [
+      "src/styles/global.css"
+    ],
+    "executionRecord": "https://example.invalid/work/AREA-001",
+    "decisionRecord": "https://example.invalid/decisions/DEC-001"
+  },
+  "adapter": {
+    "kind": "component catalog",
+    "configPath": ".storybook/main.ts",
+    "storyOrFixtureRoot": "src/ui-evidence",
+    "importsProductionStyles": true
+  },
+  "surfaces": [
+    {
+      "id": "resource-card",
+      "label": "Resource card",
+      "componentPath": "src/components/ResourceCard.astro",
+      "fixturePath": "src/ui-evidence/resource-card.fixtures.ts",
+      "contextPacket": "ui-evidence/context/resource-card.md",
+      "stateContract": "ui-evidence/contracts/resource-card.md",
+      "states": [
+        "initial",
+        "populated",
+        "empty",
+        "restricted",
+        "recoverable-error"
+      ]
+    }
+  ],
+  "verification": {
+    "install": "pnpm install --frozen-lockfile",
+    "render": "pnpm run ui-evidence:build",
+    "interaction": "pnpm run ui-evidence:test",
+    "accessibility": "pnpm run ui-evidence:test",
+    "visual": "pnpm run ui-evidence:visual",
+    "build": "pnpm run build",
+    "notes": "Commands are examples only and must be replaced with commands verified in each consumer."
+  },
+  "boundaries": {
+    "syntheticFixturesOnly": true,
+    "noCredentials": true,
+    "noProductionData": true,
+    "releaseRequiresSeparateApproval": true
+  }
+}

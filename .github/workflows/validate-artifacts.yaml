@@ -1,0 +1,22 @@
+name: Validate Artifacts
+on:
+  workflow_call:
+    inputs:
+      artifact_path:
+        required: true
+        type: string
+      artifact_type:
+        required: true
+        type: string
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python3 -m py_compile ${{ inputs.artifact_path }}
+      - run: pytest evals/ -v --tb=short

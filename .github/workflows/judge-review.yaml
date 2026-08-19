@@ -15,4 +15,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
-      - run: python3 scripts/judge_review.py --path ${{ inputs.content_path }} --rules rules/validation.yaml
+      - name: Judge LLM Validation
+        env:
+          CONTENT_PATH: ${{ inputs.content_path }}
+          RULES_PATH: rules/validation.yaml
+        run: python3 scripts/judge_review.py --path "$CONTENT_PATH" --rules "$RULES_PATH"

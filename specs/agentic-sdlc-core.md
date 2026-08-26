@@ -5,11 +5,12 @@ FastMCP-based gateway for autonomous artifact generation, validation, and deploy
 
 ## Architecture Components
 
-### 1. FastMCP Gateway (`mcp/gateway.py`)
-- RESTful interface for agent orchestration
-- Google Secret Manager integration for credentials
-- GCS artifact sync and versioning
-- Judge LLM validation hooks
+### 1. Bounded MCP placeholder (`mcp/gateway.py`)
+- Loopback-only development entry point
+- Non-sensitive locked-state manifest only
+- No credential-return, arbitrary file-transfer or Judge LLM tools
+- Domain actions belong to authenticated consumer services after allowlist and
+  independent security review
 
 ### 2. GCS Sync Manager (`mcp/gcs_sync.py`)
 - Bidirectional sync (local ↔ GCS)
@@ -33,12 +34,11 @@ FastMCP-based gateway for autonomous artifact generation, validation, and deploy
 ### Local Development
 ```bash
 pip install -r requirements.txt
-export GCP_PROJECT_ID=aispanda-prod
 python mcp/gateway.py
 ```
 
-### Production (GitHub Actions)
-- Workflows trigger on PR/push events
-- GCP SA credentials loaded from GitHub Secrets
-- Artifacts synced to gs://aispanda-artifacts/
-- Judge reviews all new code
+### Production
+
+Not authorized by this reusable scaffold. A consuming service must define its
+own authenticated transport, allowlisted domain actions, secret broker,
+deployment target and evidence gates on an issue-linked release branch.

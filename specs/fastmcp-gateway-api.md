@@ -1,34 +1,40 @@
-# FastMCP Gateway API Reference
+# Bounded MCP Gateway Contract
 
-## Tools
+## Publication status
 
-### 1. `get_secret(secret_name, version_id="latest")`
-Retrieve encrypted secret from Google Secret Manager.
+The earlier gateway scaffold is **withdrawn**. It returned raw Secret Manager
+values, accepted arbitrary local file paths and buckets, wrote untrusted blob
+names to local paths, and bound an unauthenticated service to all interfaces.
+Those are not reusable capabilities and must not be restored.
 
-**Response:**
-- `status`: "success" or "error"
-- `value`: Decrypted secret string
-- `version`: Version ID retrieved
+## Published tool
 
-### 2. `upload_to_gcs(bucket_name, blob_path, local_file_path, metadata={})`
-Upload artifact to Google Cloud Storage with versioning.
+### `gateway_status()`
 
-**Response:**
-- `status`: "success" or "error"
-- `gcs_url`: gs://bucket/path
-- `file_hash`: SHA256 checksum
+Returns a non-sensitive locked-state manifest:
 
-### 3. `sync_gcs_to_local(bucket_name, blob_prefix, local_dir)`
-Sync GCS folder to local directory (incremental).
+- `status`: `locked`
+- `capabilities`: empty list
+- `credential_values_exposed`: `false`
+- `file_transfer_enabled`: `false`
+- `next_step`: consumer implementation guidance
 
-**Response:**
-- `status`: "success" or "error"
-- `files_synced` (int): Number of files
+The development entry point accepts loopback binding only.
 
-### 4. `validate_with_judge(artifact_type, content, rules_path)`
-Submit artifact to Judge LLM for validation.
+## Consumer extension boundary
 
-**Response:**
-- `status`: "validated" or "error"
-- `issues` (list): Found issues
-- `passed` (bool): Validation result
+A consuming service may add a domain-specific action only when all of these are
+proved on its own issue-linked branch:
+
+1. The transport authenticates the caller and maps it to a trusted principal;
+   the caller cannot self-assert identity or choose a secret name.
+2. The action and credential alias are registry allowlisted. Credential values
+   remain in-process and never appear in MCP responses, logs, errors, or audit
+   evidence.
+3. File access, when genuinely required, is constrained to validated roots and
+   allowlisted destinations. Every resolved path proves containment; blob names
+   cannot traverse or overwrite arbitrary locations.
+4. Focused denial, containment, masking, and authentication tests pass, followed
+   by independent security review.
+5. Network exposure and production deployment require a separate governed
+   release decision.

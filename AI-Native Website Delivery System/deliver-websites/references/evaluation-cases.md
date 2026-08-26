@@ -54,3 +54,17 @@ Expected:
 - social metadata exists only after client JavaScript;
 - accessibility and mobile checks are deferred until after deployment;
 - the workflow deploys without explicit authorisation.
+
+## Case 4 — brand strategy → live chrome (personal blog)
+
+Prompt: “Identity locks and ChatGPT rasters are COMPLETE for a personal non-selling blog. Align the live site: mark, wordmark, tokens, fonts, hero/OG/favicon, copy posture. Treat this as an evaluation of the brand-visual fast path.”
+
+Expected:
+
+- loads only RA-005 flow/vibe then RA-006 fast path + emotion→interface (token discipline);
+- updates public brand law / site foundation in the same pass as UI apply;
+- replaces obsolete mark/tokens/fonts; hero uses `<img fetchpriority=high>` for LCP;
+- entity/sell-nothing posture appears in chrome CTAs and contact;
+- logs reusable gaps (WEB-032+) into issue patterns and strengthens the fast path;
+- stops for owner ACCEPT on home before site-wide polish;
+- does not publish private seed/spiritual provenance.

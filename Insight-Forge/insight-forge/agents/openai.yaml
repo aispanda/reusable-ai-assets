@@ -1,0 +1,7 @@
+interface:
+  display_name: "Insight Forge"
+  short_description: "Reviewed technical learning and research synthesis"
+  default_prompt: "Use $insight-forge to frame, map, research, explain, and independently review this learning job."
+
+policy:
+  allow_implicit_invocation: true

@@ -5,7 +5,7 @@
 | Category | Engineering / Web Delivery |
 | Select when | A person or team has an idea for a website on any topic and needs business-friendly help to define the purpose, audiences, brand, content, staged capabilities, architecture, UI/UX, build, QA, launch, or later evolution. |
 | Entry point | `deliver-websites/SKILL.md` |
-| Status | Pilot-ready v1.7; writing-craft (typed prose skill); emotion→interface brand bridge; independent evaluation pending |
+| Status | Pilot-ready v1.16; authenticated content application, persistent credential-vault and OAuth callback-handoff contracts added; first consumer local implementation proven; live and independent evaluation pending |
 
 ## Outcome
 
@@ -28,7 +28,7 @@ It composes with, but does not duplicate:
 - architecture and page-system selection rules;
 - project profile and brief contracts;
 - responsive design and component guidance;
-- single-page / longread craft, **writing craft** (typed public prose), topic-neutral UI/UX research–pattern–tool router, and a mandatory page-craft decision/evolution loop;
+- single-page / longread craft, **writing craft** (typed public prose), topic-neutral UI/UX research–pattern–tool router, a validated list/detail record-workspace pattern with source provenance rules, an authenticated content application pattern for identity/roles/authoring/publishing/comments/persistent AI credentials/OAuth, and a mandatory page-craft decision/evolution loop;
 - business-friendly stakeholder intake, strategy and staged-capability inventory;
 - broad, refreshable catalogue of frameworks, design systems, components, inspiration sources, and QA tools;
 - one-profile generation/validation contract;
@@ -63,10 +63,14 @@ No real organisation name, domain, route, editorial copy, allegation, person, sc
 | `deliver-websites/references/strategy-capability-inventory.md` | Universal staged website product/capability menu | Reusable core |
 | `deliver-websites/references/ui-ux-ecosystem-catalog.md` | Topic-neutral research, inspiration, pattern and tool shortlist router (no brand kit) | Reusable core |
 | `deliver-websites/references/page-craft-decision-loop.md` | Context→research→decide→apply→feedback→strengthen loop for every page consultation | Reusable core |
+| `deliver-websites/references/record-workspace-pattern.md` | Vendor-neutral collection/list, record detail, descriptor, field-sourcing, related-information and MVP cut-line contract | Reusable core; shared shell and related record presentation validated by three object consumers 2026-08-10 |
+| `deliver-websites/references/authenticated-content-application-pattern.md` | Vendor-neutral identity, authorization/ownership, authoring, publishing, discussion, UI-state, persistent user-funded AI and OAuth callback-handoff contract | Reusable core; first consumer callback regression plus encrypted-vault/server-relay implementation and focused tests proven 2026-08-17; live and independent consumer proof pending |
 | `deliver-websites/references/writing-craft.md` | Universal prose practices + content-type recipes (insight, principle-sutra, lede, proof, microcopy, policy, decision-packet) | Reusable core |
 | `deliver-websites/references/single-page-craft.md` | One-route longread, principles, essay, staged explainer and page-improvement craft | Reusable core |
 | `deliver-websites/references/brand-identity-system.md` | Brand promise, voice, logo system, visual identity, rights and acceptance contract | Reusable core |
 | `deliver-websites/references/emotion-to-interface.md` | Map accepted emotional jobs to tokens, motion, imagery, microcopy and page moments | Reusable core |
+| `deliver-websites/references/brand-visual-fast-path.md` | Token-efficient strategy→raster→code path; ChatGPT hygiene; anti-thrash rules | Reusable core |
+| `deliver-websites/assets/templates/CHATGPT_IMAGE_PROMPT_PACK.template.md` | Project-local image prompt pack (Brief/Negative/prompts/status); copy then gitignore | Reusable core copied into a project profile |
 | `deliver-websites/references/issue-resolution-patterns.md` | Reusable failure patterns, resolutions and automation-promotion rule | Reusable core |
 | `deliver-websites/references/custom-domain-launch.md` | Custom-domain readiness; registrar-agnostic handoff to RA-002 | Reusable core |
 | `deliver-websites/references/project-profile-contract.md` | One-source contract for routes, navigation, metadata, sharing, sitemap and modules | Reusable core |

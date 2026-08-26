@@ -27,6 +27,7 @@ This is a starting hypothesis, not a quota. A focused one-page launch may need f
 | Conversion/form | A user submits information or commits | Expectation, minimal fields, validation, privacy, confirmation, recovery |
 | Trust/policy | Users assess legitimacy or constraints | Plain-language summary, owner/date, source or policy detail, contact/correction path |
 | Application/dashboard | Signed-in users act on state | Navigation, permissions, status, history, loading/empty/error/success states |
+| Record workspace | Users scan a collection and work one record with related context | List toolbar + semantic table/mobile rows; record header + primary history + context rail + related sections; see `record-workspace-pattern.md` |
 
 ## Content contracts
 

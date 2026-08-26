@@ -100,3 +100,82 @@ VERDICT: PASS / FAIL [with actionable feedback]
 Do not use a universal `0.85` threshold. Calibrate to risk:
 - **Low-Risk:** Threshold = 0.70. Automated pass.
 - **High-Risk (DBs, Financials):** Threshold = 0.95. **Mandatory Human-in-the-Loop (HITL) approval** regardless of score.
+
+### ⚠️ THE DEPLOYMENT READINESS GAP: Code Complete ≠ Production Ready
+
+**Critical Pattern (from real-world multi-agent builds):**
+
+"Tests pass" creates a false sense of completion. Code-complete artifacts mask missing integration, deployment, and operational work. A story can be marked "Done" while the system is entirely non-functional in practice.
+
+**What "Code Complete + Tests Pass" Actually Means:**
+- ✅ Unit tests: Local functions work in isolation
+- ✅ Core logic: Business logic is implemented
+- ❌ Integration: Components don't communicate end-to-end
+- ❌ Deployment: Service isn't running anywhere accessible
+- ❌ Discovery: System doesn't know how to reach the service
+- ❌ Operations: No runbook, no monitoring, no failure handling
+
+**The Gap Between "Done" and "Actually Works":**
+
+| Phase | Deliverable | Team Blind Spot | Cost to Fix |
+|-------|-------------|-----------------|-------------|
+| Code | Unit tests pass | "Tests pass, ship it" | ~5% effort |
+| Integration | E2E tests fail | "Must be environment setup" | ~40% effort |
+| Deployment | Service won't start | "Dependencies, versions, configs" | ~30% effort |
+| Discovery | Tools not accessible | "How do we register this?" | ~15% effort |
+| Operations | No monitoring/runbook | "We'll document later" | ~10% effort |
+
+**Real Example: AI-73 Inter-Agent Bridge**
+- Code: 400+ LOC for inter-agent communication ✅
+- Unit tests: 18 passing ✅
+- FastMCP gateway: Code written but **never started** ❌
+- MCP tool registration: No mechanism to discover tools ❌
+- E2E test: No validation that Claude → Spark actually works ❌
+- Deployment docs: Missing (how to run the gateway?) ❌
+- Result: $0 value despite 100% code completion. Blocking AI-75, AI-76, AI-77.
+
+**Deployment Readiness Checklist (Profile B Only):**
+
+Before marking a multi-agent build "Done", verify ALL of these:
+
+1. **Service Deployment**
+   - [ ] Executable/service starts without errors (outside unit test env)
+   - [ ] All dependencies listed and installable
+   - [ ] Configuration mechanism (env vars, .env, config files) documented
+   - [ ] Startup logs show healthy initialization (no silent failures)
+
+2. **Service Discovery**
+   - [ ] If MCP server: registered in system's MCP tool list
+   - [ ] If HTTP API: endpoint URL discoverable (env var, config, or registry)
+   - [ ] Health check endpoint exists and returns live status
+   - [ ] Agent-to-agent communication: established and tested
+
+3. **Integration Testing (Not Unit Tests)**
+   - [ ] E2E test: Agent A calls Agent B's tools through the bridge, gets result
+   - [ ] Credential flow: GSM/vault integration verified (not mocked)
+   - [ ] Error path: Simulated failures handled gracefully (not crashing service)
+   - [ ] Performance: Actual latency measured (not estimated from code)
+
+4. **Operational Readiness**
+   - [ ] Deployment runbook: Step-by-step for new environment (GCP, Docker, local)
+   - [ ] Monitoring: Logs, traces, and failure alerts configured
+   - [ ] Fallback plan: What happens if the service goes down
+   - [ ] Incident response: How to debug/restart in production
+
+5. **Blocking Dependency Resolution**
+   - [ ] Identify all downstream stories that depend on this (AI-75 depends on AI-73)
+   - [ ] Verify they won't be blocked at merge (gateway must run, not just code)
+   - [ ] E2E test includes the dependent workflow (not just the bridge in isolation)
+
+**When to Reopen a "Done" Story:**
+- Tests pass but service won't start → Reopen for deployment fixes
+- Service runs locally but not discoverable by other agents → Reopen for registration
+- Dependent stories blocked waiting for actual service → Reopen to unblock them
+- E2E tests reveal integration gaps unit tests missed → Reopen for integration fixes
+
+**Prevention Pattern:**
+In story acceptance criteria, split into two sections:
+1. **Code & Unit Testing** (typically 20-30% of work)
+2. **Deployment & Integration** (typically 70-80% of work, often overlooked)
+
+Mark "Done" only when BOTH sections pass. Merge only the code; mark story complete only when service is live.

@@ -41,7 +41,7 @@ class CredentialManager:
         Initialize credential manager.
 
         Args:
-            project_id: GCP project ID (e.g., "aispanda-prod")
+            project_id: GCP project ID (e.g., "example-project")
             secret_name: Secret Manager secret name (default: "linear-api-key")
             cache_ttl_seconds: Cache TTL for credentials (default: 300s)
         """
@@ -219,7 +219,7 @@ def get_linear_api_key() -> Tuple[Optional[str], Dict]:
     global _credential_manager
 
     if _credential_manager is None:
-        project_id = os.environ.get("GCP_PROJECT_ID", "aispanda-prod")
+        project_id = os.environ["GCP_PROJECT_ID"]
         initialize_credential_manager(project_id=project_id)
 
     return _credential_manager.get_credentials()

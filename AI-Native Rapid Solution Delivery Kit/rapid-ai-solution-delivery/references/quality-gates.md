@@ -26,8 +26,17 @@
 ## Build-readiness gate
 
 - First-slice brief contains inputs, outputs, acceptance tests, failure/security cases, exclusions and verification commands.
+- A project-owned quality contract names the outcome, AI/data boundary, invariants, measurable quality/safety/reliability/latency/economic response, evidence oracles, anti-gaming checks, independent reviewer and decision owner. Automated tests do not substitute for required visual, accessibility, security, recovery or human evidence.
 - Required decisions are accepted or explicitly defaulted; unresolved blockers are named.
 - Automation router and implementation folders exist.
 - Every active Markdown document is registered; local links resolve; the current handover is fresh and records repository/HEAD/deploy alignment plus authority boundaries.
 - No proposed material decision or unfinished template placeholder remains in an activated build document.
 - Implementation, commit and deployment authority remain separate.
+
+## Learning-change gate
+
+- The project defect or improvement is observed and the project is stabilized before reusable-core promotion.
+- Root cause is distinguished from the local symptom; the proposed change is routed to one existing owner.
+- A regression or representative evaluation fails before the change and passes after it.
+- An independent reviewer checks scope, evidence, overfitting, privacy and downstream compatibility.
+- Human disposition, version, rollout and rollback are explicit. No prompt, skill, policy or baseline mutates itself.

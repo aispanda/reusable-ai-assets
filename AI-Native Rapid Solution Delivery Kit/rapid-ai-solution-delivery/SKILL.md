@@ -11,13 +11,23 @@ Turn informal stakeholder intent into a clear, testable first slice without impo
 
 Before locking planning, acceptance or “are we ready to generate?” decisions, read [`assets/ENGINEERING_PRINCIPLES.template.md`](assets/ENGINEERING_PRINCIPLES.template.md)—especially **Operating model — Intent, direction and progressive elaboration** and **Sutra 1**. That file is the vendor-neutral judgment brain for this kit: intent and direction first; journeys and acceptance criteria unfold through elaboration with humans, reusable assets and AI; humans remain accountable for high-stakes gates.
 
+When a human decision-maker must approve scope, risk, release, spending or external impact, use [`references/ceo-decision-brief.md`](references/ceo-decision-brief.md). Translate the recommendation into plain business language, show evidence and alternatives, state the exact approval boundary and stop when evidence, authority, safety, budget or approval is missing.
+
+## AI-native factory operating model
+
+When the work involves AI-generated implementation, independent reviewers, reusable guardrails or lessons from failures, read [`references/ai-native-software-factory.md`](references/ai-native-software-factory.md).
+
+- Before bounded implementation, create a project-owned quality contract from [`assets/QUALITY_CONTRACT.template.md`](assets/QUALITY_CONTRACT.template.md). Tests are important evidence, but the contract may also require security, accessibility, visual, recovery, performance or human evidence.
+- Use RA-008 for independent fresh-context review and RA-010 for the bounded execution handoff. An implementer cannot approve its own work.
+- When a defect reveals a reusable weakness, fix the project first, then create a candidate from [`assets/LEARNING_CHANGE.template.md`](assets/LEARNING_CHANGE.template.md). Route it through RA-003. Never let an agent silently rewrite a shared prompt, skill, policy or baseline.
+
 When drafting or refining principle language (sutra, rule, practical test, example) or other public prose, use RA-006 [`../../AI-Native Website Delivery System/deliver-websites/references/writing-craft.md`](../../AI-Native%20Website%20Delivery%20System/deliver-websites/references/writing-craft.md): pick the content type first (for principles rows: `principle-sutra`), then universal practices, then the type recipe. Legacy pointer: [`references/sutra-writing-craft.md`](references/sutra-writing-craft.md).
 
 ## Start with evidence, not questions
 
 1. Inspect supplied files, project routers, reusable-asset inventory and existing decisions before asking anything.
 2. If little context exists, ask only: **“Describe what you want to accomplish in your own words. Attach anything useful; you do not need to organize it.”**
-3. If the input is a flow dump, mission metaphor, brand feeling or uncommitted opportunity, capture it first with [seed-idea-management.md](references/seed-idea-management.md) and, when identity is in scope, [brand-voice-identity-flow.md](references/brand-voice-identity-flow.md): raw `SEED_CAPTURE` → register row → optional `VIBE_IDENTITY_BRIEF`. Ask public **entity/commercial posture** early. Gitignore private transcripts. Do not tidy raw speech in the same pass.
+3. If the input is a flow dump, mission metaphor, brand feeling or uncommitted opportunity, capture it first with [seed-idea-management.md](references/seed-idea-management.md) and, when identity is in scope, [brand-voice-identity-flow.md](references/brand-voice-identity-flow.md): raw `SEED_CAPTURE` → register row → optional `VIBE_IDENTITY_BRIEF`. Ask public **entity/commercial posture** early. Gitignore private transcripts. After locks, hand visuals to RA-006 `brand-visual-fast-path.md` (do not reload full trees). Do not tidy raw speech in the same pass.
 4. Convert the response into a concise discovery canvas: outcome, stakeholder/user, current problem, proof of value, constraints, exclusions, evidence and assumptions.
 5. Label claims `OBSERVED`, `INFERRED` or `ASSUMED`. Never convert an assumption or recommendation into an accepted decision.
 6. Recommend a delivery mode using [delivery-modes.md](references/delivery-modes.md). Default to Lite.
@@ -64,6 +74,8 @@ Run `scripts/audit_project.py` after scaffolding and at every gate, using the sa
 
 - One fact has one owning artifact; other files link to it.
 - Research is evidence, not commitment. Recommendations become law only through recorded human acceptance.
+- Keep named comparative evidence and consuming-product documentation in separate corpora. The private evidence corpus contains no consumer identifiers or decisions; project and reusable roots contain only independently authored requirements or generic methods, without named comparative details. Minimal custody manifests are the only routing exception.
+- When strict separation is required, run the project audit with protected-root forbidden terms and an optional external evidence root plus consumer terms. Review compressed documents separately when the audit reports an unsupported binary.
 - Keep current state compact; archive historical handovers and detailed evidence rather than loading them every session.
 - Prefer a walking skeleton: user input → business rule → durable result → visible output → automated test.
 - Use reusable assets by reference; do not copy their methods into the project.

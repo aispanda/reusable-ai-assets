@@ -1,7 +1,7 @@
 # {{PROJECT_NAME}} — Research Synthesis
 
-| Question | Finding | Confidence | Primary source | Decision affected | Freshness / verify trigger |
+| Question | Independently authored conclusion | Confidence | Evidence packet ID | Decision affected | Freshness / verify trigger |
 |---|---|---|---|---|---|
-| [Question] | [Paraphrased finding] | High/Medium/Low | [Link] | [Decision ID] | [Date/event] |
+| [Question] | [Product-safe conclusion] | High/Medium/Low | [Neutral ID] | [Decision ID] | [Date/event] |
 
-Research is evidence, not a decision. Distinguish sourced facts from analysis and inference.
+Research is evidence, not a decision. Named sources, links, quotations, comparative details and consuming-product identifiers never share this artifact; the private evidence corpus owns the neutral-ID mapping.

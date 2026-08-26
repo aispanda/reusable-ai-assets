@@ -5,7 +5,7 @@ Use when an owner can answer in flow (or async) and you need mission, vision, no
 Works with:
 - [`seed-idea-management.md`](seed-idea-management.md) (raw capture first)
 - [`VIBE_IDENTITY_BRIEF.template.md`](../assets/VIBE_IDENTITY_BRIEF.template.md) (structured brief)
-- RA-006 `brand-identity-system.md` and `emotion-to-interface.md` (logo, tokens, imagery, UX after ACCEPT)
+- RA-006 `brand-identity-system.md`, `emotion-to-interface.md`, and **`brand-visual-fast-path.md`** (token-efficient logo/imagery after ACCEPT)
 
 **Composition:** RA-005 owns strategy elicitation. RA-006 owns website/interface expression. No separate brand RA unless brand-only engagements repeatedly need a standalone package.
 
@@ -53,11 +53,13 @@ Owners sometimes hold private cultural, spiritual, or biographical sources that 
 1. Flow Q1–Q8 (core identity) + Q9–Q16 (strategy/voice/expression gaps) as needed
 2. Vibe identity brief (locks only; ACCEPT/AMEND/DEFER)
 3. Onlyness + positioning check (can a competitor steal the sentence?)
-4. ≤3 visual directions → owner picks one
+4. Hand off to RA-006 brand-visual-fast-path (one prompt pack; stop ChatGPT when status table is green)
 5. RA-006 brand contract + emotion→interface map (tokens, motion, imagery, microcopy)
 6. Promote accepted lines into public brand law / site foundation
 7. Build UI/pages from the same tokens and voice — marketing and product share one system
 ```
+
+**Token-efficient next-site path:** load only this file + vibe template → one intake → then only RA-006 `brand-visual-fast-path.md` + prompt-pack template. Do not reload the full RA-005/006 trees.
 
 Do not start logo/UI before steps 1–3 have enough locks for promise, audience, and personality.
 
@@ -191,10 +193,10 @@ Who matters second and third (e.g. tech leaders, builders, policy)? What must th
 1. Append raw answers to the seed capture file (or create one) — gitignore if private.
 2. Update or create `VIBE_IDENTITY_BRIEF` with locked lines only.
 3. Run onlyness check (Q9) before visual exploration if positioning is still soft.
-4. Produce ≤3 visual directions; owner selects one.
+4. Follow RA-006 `brand-visual-fast-path.md`: fill project prompt pack from locks; generate mark→mono→lockup→favicon→OG/hero; stop when COMPLETE.
 5. Map accepted brief → RA-006 brand contract + `emotion-to-interface.md`.
 6. Promote accepted **public** lines into project brand law / site foundation.
-7. Build pages/UI from shared tokens and voice.
+7. Build pages/UI from shared tokens and voice (SVG/CSS production mark; rasters for mood/social).
 
 ## Acceptance checks
 

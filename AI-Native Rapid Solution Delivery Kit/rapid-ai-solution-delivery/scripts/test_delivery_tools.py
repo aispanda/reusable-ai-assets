@@ -3,10 +3,11 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tempfile
-import re
+import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -77,6 +78,12 @@ def main() -> int:
             assert marker in evidence
         assert (root2 / "research/README.md").is_file()
         assert (root2 / "research/sources").is_dir()
+        research_readme = (root2 / "research/README.md").read_text(encoding="utf-8")
+        assert "two-corpus boundary" in research_readme
+        synthesis = (root2 / "docs/RESEARCH_SYNTHESIS.md").read_text(encoding="utf-8")
+        assert "Evidence packet ID" in synthesis and "private evidence corpus" in synthesis
+        documentation_router = (root2 / "docs/DOCUMENTATION_ROUTER.md").read_text(encoding="utf-8")
+        assert "must never share an artifact" in documentation_router
         assert (root2 / "prompts/ai-exchange/README.md").is_file()
         assert (root2 / "scripts/Main-scripts").is_dir()
         protocol = (root2 / "docs/AI_HANDOVER_PROTOCOL.md").read_text(encoding="utf-8")
@@ -91,6 +98,41 @@ def main() -> int:
             "--with-research", "--with-ai-exchange",
         )
         run(*audit_args)
+
+        boundary_sheet = root2 / "docs/BOUNDARY.xlsx"
+        with zipfile.ZipFile(boundary_sheet, "w") as package:
+            package.writestr("xl/sharedStrings.xml", "<sst><si><t>ExampleVendor</t></si></sst>")
+        protected = run(*audit_args, "--forbid-protected-term", "ExampleVendor", expect=1)
+        assert "PROTECTED_TERM docs/BOUNDARY.xlsx: ExampleVendor" in protected.stdout
+        boundary_sheet.unlink()
+
+        boundary_pdf = root2 / "docs/BOUNDARY.pdf"
+        boundary_pdf.write_bytes(b"%PDF-1.4\n% separately reviewed fixture\n")
+        unsupported = run(*audit_args, "--forbid-protected-term", "ExampleVendor", expect=1)
+        assert "BOUNDARY_REVIEW_REQUIRED PROTECTED docs/BOUNDARY.pdf" in unsupported.stdout
+        run(
+            *audit_args,
+            "--forbid-protected-term", "ExampleVendor",
+            "--reviewed-binary", "docs/BOUNDARY.pdf",
+        )
+        boundary_pdf.unlink()
+
+        evidence_root = Path(temp) / "private-evidence"
+        evidence_root.mkdir()
+        (evidence_root / "source-note.md").write_text("ExampleProduct evidence only", encoding="utf-8")
+        evidence_gap = run(
+            *audit_args,
+            "--evidence-root", str(evidence_root),
+            "--forbid-evidence-term", "ExampleProduct",
+            expect=1,
+        )
+        assert "EVIDENCE_TERM source-note.md: ExampleProduct" in evidence_gap.stdout
+        (evidence_root / "source-note.md").write_text("Named evidence only", encoding="utf-8")
+        run(
+            *audit_args,
+            "--evidence-root", str(evidence_root),
+            "--forbid-evidence-term", "ExampleProduct",
+        )
 
         protocol_path = root2 / "docs/AI_HANDOVER_PROTOCOL.md"
         protocol_path.write_text(protocol.replace("## Authority boundaries", "## Permissions"), encoding="utf-8")

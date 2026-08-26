@@ -31,6 +31,10 @@ Thumbs.db
 .git-nested-deployment-automation-backup/
 WebPage-Development/
 
+# Never publish expose / investigation frameworks here (private tree only)
+Expose-Evidence-Analysis/
+_private/
+
 # Extra generated/workspace output
 **/node_modules/
 **/dist/
@@ -38,3 +42,30 @@ WebPage-Development/
 **/generated/
 **/test-results/
 **/playwright-report/
+
+# Environment & Secrets
+.env
+.env.local
+.env.secrets
+*.key
+*.pem
+credentials.json
+service-account-key.json
+
+# IDE & Local
+.vscode/
+.idea/
+*.swp
+*.swo
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# GCP & Deployment
+gcp-sa-*.json
+
+# Local candidates and consumer-owned terminology profiles awaiting promotion
+.worktrees/
+Insight-Forge/INSIGHT_FORGE_BROWSER_AUTHOR_CONTEXT.candidate.md
+Indic-language-tools/profiles/pushtimarg_vallabhkul.glossary.yaml
+YouTube Transcript Download Engine/

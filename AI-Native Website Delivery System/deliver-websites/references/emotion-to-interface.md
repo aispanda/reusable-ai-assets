@@ -49,9 +49,10 @@ The first viewport should usually carry: brand signal, one headline, one support
 
 1. Update brand contract visual tokens from the mapping table.
 2. Apply the same tokens to header, footer, favicon, social card, empty/error states.
-3. Check contrast and motion accessibility (prefers-reduced-motion).
-4. Verify public lexicon: no inner-myth terms leaked into UI strings.
-5. Owner ACCEPT on one representative page before scaling components.
+3. For new rasters, follow [`brand-visual-fast-path.md`](brand-visual-fast-path.md); production mark should be SVG/CSS even when ChatGPT supplied the mood.
+4. Check contrast and motion accessibility (prefers-reduced-motion).
+5. Verify public lexicon: no inner-myth terms leaked into UI strings.
+6. Owner ACCEPT on one representative page before scaling components.
 
 ## Acceptance checks
 

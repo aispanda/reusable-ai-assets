@@ -41,12 +41,15 @@ After the vibe brief is accepted, fill [`emotion-to-interface.md`](emotion-to-in
 
 ## Efficient workflow
 
+For a **new site identity under token/budget pressure**, follow [`brand-visual-fast-path.md`](brand-visual-fast-path.md) (strict load order + one ChatGPT pack). Otherwise:
+
 1. Approve promise, audience and personality before visual exploration (or accept a vibe identity brief that already carries them).
 2. Map 2–3 target feelings to first-viewport and key page moments (`emotion-to-interface.md`).
 3. Produce at most three meaningfully different directions; explain the business signal and accessibility risk of each.
 4. Select one direction, then derive responsive logo variants and interface tokens from it.
-5. Use code/CSS for interface structure and deterministic marks; use raster generation only for imagery where it adds value. Never auto-trace or imitate a third-party logo.
-6. Store editable source, export sizes, provenance and usage rules together. Keep project identity out of this reusable package.
+5. Copy [`CHATGPT_IMAGE_PROMPT_PACK.template.md`](../assets/templates/CHATGPT_IMAGE_PROMPT_PACK.template.md) into the project (gitignored). One asset per thread; status table; failed → `failed/`. Stop image models when the table is green.
+6. Use code/CSS for interface structure and deterministic marks; use raster generation for mood/social where it adds value. Never auto-trace or imitate a third-party logo.
+7. Store editable source, export sizes, provenance and usage rules together. Keep project identity out of this reusable package.
 
 ## Acceptance checks
 

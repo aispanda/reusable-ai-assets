@@ -5,7 +5,7 @@
 | Category | Data architecture / visualization |
 | Select when | DBML, ERD, schema review, data dictionary, relationship exploration or public schema presentation |
 | Entry point | `open_data_model_workspace.ps1` |
-| Status | Reusable v1.0 |
+| Status | Reusable v1.1 |
 
 ## Outcome
 
@@ -45,6 +45,17 @@ For a permanent project profile, set `schemaPath` in `workspace/workspace.config
 2. Update project-specific acceptance examples/counts while preserving parser, model, layout, accessibility and public-build safety tests.
 3. Register the central asset record in the project's document router and its code/launcher in the automation router.
 4. Run the verification below before deleting any previous project-local copy.
+
+## Semantic schema-review gate
+
+The parser validates declared DBML structure; it cannot prove that a field name carries the intended business or protocol meaning. Before accepting a generated model or relationship view, reviewers must also check:
+
+1. Separate domain identifiers, provider/API identifiers and protocol identifiers into explicitly named fields. Do not reuse one value merely because both are called an ID by their source systems.
+2. Record the uniqueness scope for every external identifier (for example tenant + mailbox + provider message), and distinguish that scope from correlation/search indexes.
+3. Verify which identifier actually participates in each protocol relationship. Thread identifiers, transport delivery identifiers and reply-header identifiers may all differ.
+4. Confirm tenant scope and lifecycle for every relationship and external reference, including deletion, quarantine and retry behavior.
+
+Example: an email provider's API message ID is suitable for delivery deduplication, while the RFC Internet Message-ID is the value referenced by `In-Reply-To` and `References`. A structurally valid schema that stores only one of them can still be semantically wrong.
 
 ## Dependencies and cost
 

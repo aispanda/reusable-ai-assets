@@ -62,6 +62,8 @@ Read `references/page-system.md`. Select only the archetypes the user journey ne
 
 When the job is **one route** (longread, principles, essay, manifesto, policy brief, or landing slice)—or improving an existing page's UI/UX, content hierarchy, or presentation—read `references/page-craft-decision-loop.md` first (context → research → decide → apply → verify → feedback → strengthen). Then use `references/single-page-craft.md` and `references/ui-ux-ecosystem-catalog.md` as directed. When drafting or refining the **words** on that page (or insights, principles rows, ledes, microcopy), read `references/writing-craft.md`: pick the content type, apply universal practices, then the type recipe. Do not invent a parallel website asset for single-page or writing work. Every consultation must log feedback into `references/issue-resolution-patterns.md` and/or strengthen the owning reference.
 
+When the job is a business-application collection/list plus record detail, read `references/record-workspace-pattern.md`. Start with separate list and record routes; add split view, inline editing, alternate visualizations or multi-record tabs only after the base journey passes.
+
 Map each route to:
 
 - audience intent;
@@ -76,7 +78,7 @@ Keep navigation shallow. Put repeated links and legal/trust destinations in the 
 
 ### 6. Establish the design contract
 
-Read `references/ui-ux-system.md`. When creating or changing identity, also read `references/brand-identity-system.md` and `references/emotion-to-interface.md`. If strategy/feeling is not yet locked, hand off to RA-005 `brand-voice-identity-flow.md` first. Define approved brand and interface tokens before page-specific CSS. Require semantic HTML, keyboard operation, visible focus, sufficient contrast, readable line length, responsive images, stable layout, reduced motion, and touch-friendly controls.
+Read `references/ui-ux-system.md`. When creating or changing identity, also read `references/brand-identity-system.md` and `references/emotion-to-interface.md`. If strategy/feeling is not yet locked, hand off to RA-005 `brand-voice-identity-flow.md` first. For **token-efficient new-site visuals** after locks, read `references/brand-visual-fast-path.md` and copy `assets/templates/CHATGPT_IMAGE_PROMPT_PACK.template.md` into the project (gitignored); one ChatGPT asset per thread; finish the mark in SVG/CSS. Define approved brand and interface tokens before page-specific CSS. Require semantic HTML, keyboard operation, visible focus, sufficient contrast, readable line length, responsive images, stable layout, reduced motion, and touch-friendly controls.
 
 Reuse components when their semantic contract matches. Do not force a visual component into the wrong information hierarchy. Add animation only when it clarifies state, sequence, or relationship.
 
@@ -93,6 +95,8 @@ The scaffold is zero-dependency and emits per-route HTML, CSS, JavaScript, provi
 For an existing site, preserve its stack and implement the same contracts locally: single route registry, source-driven navigation, route-specific server-visible metadata, responsive media, and release gates.
 
 For an application profile, create only the thinnest vertical slice proving routing, data boundary, authentication/authorisation if needed, one representative success flow, and state/error handling before expanding.
+
+When the application includes protected authoring, publication, comments/discussions, role-aware moderation or user-funded AI connections, read `references/authenticated-content-application-pattern.md`. Treat identity, authorization, ownership, publication authority and temporary credential handling as separate contracts. If an OAuth callback is forwarded between same-origin routes, preserve the provider redirect URI for token exchange and validate only the registered route plus an explicit internal processing-route allowlist.
 
 ### 8. Make discovery and sharing server-visible
 
@@ -150,11 +154,15 @@ For **page craft** work, also complete the close-out checklist in `references/pa
 - `references/project-profile-contract.md`: canonical profile and generated-artifact contract.
 - `references/page-system.md`: page archetypes and default launch scope.
 - `references/page-craft-decision-loop.md`: context → research → decide → apply → feedback → strengthen (mandatory evolution loop for every page consultation).
+- `references/record-workspace-pattern.md`: vendor-neutral collection/list, record workspace, related-information and MVP cut-line contract.
+- `references/authenticated-content-application-pattern.md`: identity, role/ownership, authoring, publishing, comments/moderation, UI states, user-funded AI connection, persistence ladder and OAuth callback-handoff contract.
 - `references/single-page-craft.md`: one-route longread, principles, essay, staged explainer, and page-improvement craft.
 - `references/ui-ux-system.md`: design, responsive, component, and motion rules.
 - `references/ui-ux-ecosystem-catalog.md`: topic-neutral research, inspiration, pattern and tool shortlist router.
 - `references/brand-identity-system.md`: brand promise, voice, logo system, visual identity, rights and approval contract.
 - `references/emotion-to-interface.md`: map accepted feelings to tokens, motion, imagery, microcopy and page moments.
+- `references/brand-visual-fast-path.md`: token-efficient load order + ChatGPT pack rules + post-raster code handoff.
+- `assets/templates/CHATGPT_IMAGE_PROMPT_PACK.template.md`: project-local image prompt pack (gitignore); status table and file hygiene.
 - `references/discovery-sharing.md`: SEO, social previews, sitemap, canonical, and media.
 - `references/quality-gates.md`: executable and human release gates.
 - `references/risk-register.md`: recurring risks and mitigations.

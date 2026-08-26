@@ -1,0 +1,4 @@
+interface:
+  display_name: "Source-Grounded Legal Drafter"
+  short_description: "Draft verified legal documents from supplied sources"
+  default_prompt: "Use $draft-source-grounded-legal-documents to create a legally verified document from my source draft and instructions."

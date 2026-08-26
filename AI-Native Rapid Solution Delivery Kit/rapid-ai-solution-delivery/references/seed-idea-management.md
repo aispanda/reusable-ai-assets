@@ -29,6 +29,7 @@ Seeds are **not** decisions. They stay uncommitted until a human moves them into
 4. **Disposition required.** Every seed has Explore / Park / Promote / Drop and a revisit trigger.
 5. **Sacred or culturally loaded vocabulary** stays in the seed until the owner decides what is public-facing vs internal metaphor. Do not auto-publish Sanskrit, religious or closed-practice terms onto consuming sites.
 6. **No silent overwrite** of existing brand law, charter or roadmap from a seed.
+7. **No LLM stub essays on the live site.** If an insight/article idea is not owner-ready, park it in the seed register (and a deep seed file when it has outline depth). Live routes and nav cards must not link unfinished placeholders (WEB-036).
 7. **Publishable repos:** gitignore project-specific brand transcripts and vibe briefs when they contain private myth or unreleased positioning. See [brand-voice-identity-flow.md](brand-voice-identity-flow.md) privacy rule. Never put real project brand transcripts into the reusable library.
 
 ## Lifecycle

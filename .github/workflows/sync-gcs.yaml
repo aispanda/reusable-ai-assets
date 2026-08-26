@@ -1,6 +1,11 @@
 name: Sync to GCS
 on:
   workflow_call:
+    inputs:
+      gcs_bucket:
+        description: Consumer-owned Cloud Storage bucket name
+        required: true
+        type: string
     secrets:
       GCP_SA_KEY:
         required: true
@@ -14,4 +19,6 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
       - uses: google-github-actions/setup-gcloud@v1
-      - run: gsutil -m cp -r . gs://aispanda-artifacts/${{ github.sha }}/
+      - run: gsutil -m cp -r . "gs://${ARTIFACT_BUCKET}/${GITHUB_SHA}/"
+        env:
+          ARTIFACT_BUCKET: ${{ inputs.gcs_bucket }}

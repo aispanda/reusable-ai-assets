@@ -33,12 +33,12 @@ FastMCP-based gateway for autonomous artifact generation, validation, and deploy
 ### Local Development
 ```bash
 pip install -r requirements.txt
-export GCP_PROJECT_ID=aispanda-prod
+export GCP_PROJECT_ID=example-project
 python mcp/gateway.py
 ```
 
 ### Production (GitHub Actions)
 - Workflows trigger on PR/push events
 - GCP SA credentials loaded from GitHub Secrets
-- Artifacts synced to gs://aispanda-artifacts/
+- Artifacts synced to a consumer-owned Cloud Storage bucket.
 - Judge reviews all new code

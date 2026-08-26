@@ -39,7 +39,7 @@ class AuditLogger:
         Initialize audit logger.
 
         Args:
-            project_id: GCP project ID (e.g., "aispanda-prod")
+            project_id: GCP project ID (e.g., "example-project")
             log_name: GCP Cloud Logging log name (default: "gemini-spark-linear-api")
         """
         self.project_id = project_id
@@ -244,7 +244,7 @@ def get_audit_logger() -> AuditLogger:
 
     if _audit_logger is None:
         import os
-        project_id = os.environ.get("GCP_PROJECT_ID", "aispanda-prod")
+        project_id = os.environ["GCP_PROJECT_ID"]
         initialize_audit_logger(project_id)
 
     return _audit_logger

@@ -18,7 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Initialize FastMCP app
-app = FastMCP("aispanda-gateway", "0.1.0")
+app = FastMCP("agent-linear-gateway", "0.1.0")
 
 
 class SecretRequest(BaseModel):
@@ -55,7 +55,7 @@ def get_secret(secret_name: str, version_id: str = "latest") -> Dict[str, Any]:
         Dictionary with secret metadata and value.
     """
     try:
-        project_id = os.getenv("GCP_PROJECT_ID", "aispanda-prod")
+        project_id = os.environ["GCP_PROJECT_ID"]
         client = secretmanager.SecretManagerServiceClient()
         name = f"projects/{project_id}/secrets/{secret_name}/versions/{version_id}"
         response = client.access_secret_version(request={"name": name})

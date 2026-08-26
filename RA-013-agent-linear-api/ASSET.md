@@ -1,10 +1,10 @@
-# RA-013: Agent Linear API Integration
+# RA-013 — Agent Linear API Integration
 
-**ID:** RA-013  
-**Title:** Agent Linear API Integration  
-**Category:** AI workflow / SDLC automation  
-**Status:** Pilot v0.1 (initial build in progress)  
-**Verified:** 2026-08-19 (build checkpoint)  
+**ID:** RA-013
+**Title:** Agent Linear API Integration
+**Category:** AI workflow / SDLC automation
+**Status:** Pilot v0.1 (implementation complete; bounded live validation pending)
+**Verified:** 2026-08-19 (build checkpoint)
 
 ---
 
@@ -17,7 +17,7 @@
 
 ---
 
-## What This Delivers
+## Outcome
 
 1. **Credential Management** — Linear API key stored in Google Secret Manager with automatic quarterly rotation
 2. **Audit & Logging** — All agent Linear API calls logged to GCP Logging with searchable metadata (actor, action, resource, status)
@@ -28,11 +28,11 @@
 
 ---
 
-## Key Components
+## Transfer manifest
 
 | Component | Purpose | Location |
 | -- | -- | -- |
-| `get_linear_credentials()` tool | Retrieve Linear API key from GSM | mcp/gateway.py (AIspanda project) |
+| `get_linear_credentials()` tool | Retrieve Linear API key from GSM | Consumer-owned gateway adapter |
 | System Architecture | Design, component flow, code templates | references/SYSTEM_ARCHITECTURE.md |
 | Agent Runbook | Setup, configuration, troubleshooting | references/AGENT_RUNBOOK.md |
 | QA & Testing | Test scenarios and validation approach | references/QA_TESTING.md |
@@ -45,7 +45,7 @@
 ## Boundaries
 
 **Included:**
-- Linear API access scoped to AI Integration project and related issues
+- Linear API access scoped by the consuming project's configuration
 - Credential storage and rotation (GSM)
 - Audit logging (GCP Logging)
 - Error handling and escalation rules
@@ -72,15 +72,16 @@
 
 ---
 
-## Evidence & Verification
+## Verification
 
 **Build Status:**
-- [ ] Phase 1: Credential Management (in progress)
-- [ ] Phase 2: Audit & Logging (in progress)
-- [ ] Phase 3: Linear Integration
-- [ ] Phase 4: Error Handling & Resilience
-- [ ] Phase 5: Documentation
-- [ ] Phase 6: Autonomous Testing (Spark)
+- [x] Phase 1: Credential Management implementation
+- [x] Phase 2: Audit & Logging implementation
+- [x] Phase 3: Linear Integration implementation
+- [x] Phase 4: Error Handling & Resilience implementation
+- [x] Phase 5: Documentation package
+- [x] Phase 6: Autonomous test harness
+- [ ] Bounded live credential, API and rotation validation
 
 **Verification Plan:**
 - Story Retro document (accuracy, token efficiency, effectiveness)
@@ -99,15 +100,12 @@
 
 ---
 
-## Project Profile (Not in Reusable Core)
+## Project Profile Boundary
 
-- **Project:** AIspanda
-- **Parent repo:** C:\Personal\AIspanda
-- **Reusable asset repo:** C:\Personal\Reusable-ai-assets
-- **CI/CD process:** Notion (existing project governance)
-- **Linear workspace:** aispanda-prod
-- **GCP Project:** aispanda-prod
-- **Spark service account:** service-account-spark@aispanda-prod.iam.gserviceaccount.com
+Keep the consuming repository path, workflow system, Linear workspace, cloud
+project and service-account identity in a consumer-owned private profile. The
+reusable package accepts only explicit aliases or configuration parameters and
+must never contain those live values.
 
 ---
 
@@ -115,7 +113,6 @@
 
 **2026-08-19 (v0.1 - Initial Build)**
 - Created RA-013 folder structure
-- Phase 1+2 implementation started (Credentials + Audit)
+- Phases 1-6 implementation package completed
 - Story Retro + Build Components tracking active
 - RA-008 bounded patterns applied to Spark execution
-

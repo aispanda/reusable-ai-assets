@@ -9,7 +9,7 @@ Spark uses Google Secret Manager (GSM) to store and retrieve the Linear API key 
 
 ### Pattern
 ```
-GCP Project (aispanda-prod)
+GCP Project (`<gcp-project-id>`)
   └─ Secret Manager
       └─ Secret: "linear-api-key"
           └─ Version: "latest" (auto-managed)
@@ -58,7 +58,7 @@ GCP Project (aispanda-prod)
 
 ### Retention Policy
 - **Duration:** 90 days minimum
-- **Storage:** GCP Cloud Logging (workspace: aispanda-prod)
+- **Storage:** GCP Cloud Logging in the configured consumer project
 - **Access:** Accessible via Cloud Logging console with actor filter
 - **Compliance:** Supports audit trail requirements for regulated deployment profiles
 
@@ -81,14 +81,14 @@ GCP Project (aispanda-prod)
 
 ### Credential Scope
 - **Storage:** Google Secret Manager (GSM)
-- **Project:** aispanda-prod
+- **Project:** `<gcp-project-id>`
 - **Secret:** linear-api-key (Linear API personal access token)
 - **Permissions:** Spark service account has read-only access to latest version
 - **Rotation:** Quarterly via secret versioning
 
 ### Audit Scope
 - **Destination:** GCP Cloud Logging
-- **Project:** aispanda-prod
+- **Project:** `<gcp-project-id>`
 - **Log:** gemini-spark-linear-api
 - **Retention:** 90 days
 - **Query:** All metadata searchable except credential details
@@ -115,13 +115,13 @@ GCP Project (aispanda-prod)
 - **Payload:** JSON with commit hash, branch, test results, status
 
 ### Outgoing: Linear Workspace
-- **Destination:** Linear workspace (ai-spanda)
+- **Destination:** Consumer-configured Linear workspace
 - **Output:** Issues created/updated with validation results
 - **Notifications:** Team members notified via Linear
 
 ### Outgoing: Escalation Alerts
-- **Destination:** Slack channels
-- **Channels:** #spark-alerts (critical), #engineering, #ci-cd-support
+- **Destination:** Consumer-configured alert channels
+- **Channels:** Defined by the consuming project's escalation policy
 - **Format:** Structured alert with reason, action required, timestamp
 
 ---
@@ -161,4 +161,4 @@ GCP Project (aispanda-prod)
 - **RA-010:** Cross-Agent Handover Protocol (credential delegation)
 - **AI-62:** Google Secret Manager (parent story, credential infrastructure)
 - **AI-63:** Gemini Spark Linear API Integration (this story)
-- **AI-64:** aispanda-web integration (consumer of this capability)
+- **Consumer:** Project-owned integration tracked outside the reusable package

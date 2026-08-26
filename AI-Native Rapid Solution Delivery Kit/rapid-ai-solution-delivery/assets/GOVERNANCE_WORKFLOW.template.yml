@@ -1,0 +1,73 @@
+name: Governance
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: governance-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  delivery-contract:
+    name: delivery-contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Mark live pull-request contract pending
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: >-
+          python3 governance/set_pull_request_status.py
+          --pr-number "$PR_NUMBER"
+          --state pending
+      - name: Fetch governed Linear evidence
+        env:
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          TFY_API_KEY: ${{ secrets.TFY_API_KEY }}
+        run: >-
+          python3 governance/fetch_linear_issue.py
+          --branch "$PR_BRANCH"
+          --output "$RUNNER_TEMP/linear-issue.json"
+      - name: Verify issue, branch and pull-request contract
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: >-
+          python3 governance/check_delivery.py
+          --mode ci
+          --branch "$PR_BRANCH"
+          --issue-json "$RUNNER_TEMP/linear-issue.json"
+          --pr-number "$PR_NUMBER"
+          --revision-output "$RUNNER_TEMP/pr-revision.json"
+      - name: Mark live pull-request contract successful
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: >-
+          python3 governance/set_pull_request_status.py
+          --pr-number "$PR_NUMBER"
+          --state success
+          --expected-revision "$RUNNER_TEMP/pr-revision.json"
+      - name: Mark live pull-request contract failed
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: >-
+          python3 governance/set_pull_request_status.py
+          --pr-number "$PR_NUMBER"
+          --state failure

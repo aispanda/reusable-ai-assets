@@ -16,3 +16,12 @@ Use the RA-002 canonical controller; never reconstruct deployment commands or co
 7. Report the current receipt paths, Build ID, commit, digest, exact revisions, traffic, verification verdicts and whether production was touched. Do not copy facts from an earlier run.
 
 Cloudflare/static previews may remain an earlier UI gate, but they do not replace Cloud Run staging for server APIs or managed data integrations.
+
+When a consuming project implements its read-only verifier in Node, use
+[`references/node-cloud-verifier.mjs`](references/node-cloud-verifier.mjs). It
+resolves the installed `gcloud.ps1` wrapper on Windows without a command shell
+and fails closed on launch or command errors. For Firebase Management, bind and
+verify the resource project in the URL separately; `x-goog-user-project` only
+attributes quota/billing. Require the API and existing `serviceusage.services.use`
+on that quota project, and never broaden IAM during verification. Adapt only
+project-specific checks; do not put credentials or project facts in this package.

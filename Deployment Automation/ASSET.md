@@ -18,6 +18,7 @@ Provide a controlled direct deployment flow and an isolated staged-release flow.
 - [`staged_release.sh`](staged_release.sh): build-once staging and exact-image promotion controller with separate `STAGE` and `DEPLOY` gates.
 - [`STAGED_RELEASE.md`](STAGED_RELEASE.md): isolation, runtime-configuration, evidence and consumer-adoption contract.
 - [`stage-cloud-run-release/SKILL.md`](stage-cloud-run-release/SKILL.md): portable Agent Skill entry point.
+- [`stage-cloud-run-release/references/node-cloud-verifier.mjs`](stage-cloud-run-release/references/node-cloud-verifier.mjs): portable, shell-free `gcloud` and Firebase Management helpers for Node-based consumer verifiers.
 - [`scripts/staged_release_receipt.py`](scripts/staged_release_receipt.py): strict receipt hashing, creation and validation helper.
 - [`staged-release.config.example`](staged-release.config.example): replaceable two-environment project profile.
 - [`CUSTOM_DOMAIN.md`](CUSTOM_DOMAIN.md): custom-domain mapping, DNS publication and cutover verification.
@@ -42,6 +43,7 @@ bash "./test.sh"
 STAGED_RELEASE_PYTHON=python bash "./test_staged_release.sh"
 python -B scripts/test_staged_release_receipt.py
 python scripts/custom_domain/test_custom_domain_tools.py
+node --test stage-cloud-run-release/references/node-cloud-verifier.test.mjs
 ```
 
 ## Boundaries

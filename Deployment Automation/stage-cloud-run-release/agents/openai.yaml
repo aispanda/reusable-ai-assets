@@ -1,0 +1,4 @@
+interface:
+  display_name: "Stage Cloud Run Release"
+  short_description: "Test once in isolation, promote the exact image"
+  default_prompt: "Use $stage-cloud-run-release to test this existing Cloud Run application against isolated non-production data and promote only the exact verified digest after the required gates."

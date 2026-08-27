@@ -341,22 +341,34 @@ TARGET_TAG=""
 TARGET_TAG_URL=""
 ensure_candidate_revision() {
   local project="$1" service="$2" label="$3" completed_traffic="$4"
-  TARGET_REVISION="$service-$SHORT_SHA"
   TARGET_TAG="candidate-$SHORT_SHA"
-  local image state observed_percent
-  image="$(revision_image "$TARGET_REVISION" "$project")"
-  if [[ -z "$image" ]]; then
-    gcloud run deploy "$service" --image="$IMAGE_REPOSITORY@$IMAGE_DIGEST" --revision-suffix="$SHORT_SHA" --no-traffic --tag="$TARGET_TAG" --region "$REGION" --project "$project" --quiet >/dev/null || die "$label no-traffic candidate deployment failed"
+  local suffix image state observed_percent attempt
+  for attempt in 0 1 2 3; do
+    suffix="$SHORT_SHA"; [[ "$attempt" -eq 0 ]] || suffix="$SHORT_SHA-r$attempt"
+    TARGET_REVISION="$service-$suffix"
     image="$(revision_image "$TARGET_REVISION" "$project")"
-  fi
-  [[ "$image" == *"@$IMAGE_DIGEST" ]] || die "$label exact revision $TARGET_REVISION does not use the verified digest"
-  state="$(service_state "$project" "$service" "$TARGET_REVISION" "$TARGET_TAG" true)" || die "$label candidate tag state is not authoritative"
-  IFS=$'\t' read -r observed_percent TARGET_TAG_URL <<<"$state"
-  [[ "${observed_percent:-0}" == 0 || "$observed_percent" == "$completed_traffic" ]] \
-    || die "$label candidate has unexpected traffic $observed_percent%; expected 0% or reconciled $completed_traffic%"
-  TARGET_TRAFFIC="$observed_percent"
-  [[ "$TARGET_TAG_URL" =~ ^https://[^[:space:]/]+$ ]] || die "$label tagged candidate URL is unavailable"
-  pass "$label candidate: exact digest, deterministic revision and tag at $TARGET_TRAFFIC% traffic"
+    if [[ -n "$image" ]]; then
+      [[ "$image" == *"@$IMAGE_DIGEST" ]] || die "$label exact revision $TARGET_REVISION does not use the verified digest"
+      if state="$(service_state "$project" "$service" "$TARGET_REVISION" "$TARGET_TAG" true)"; then
+        IFS=$'\t' read -r observed_percent TARGET_TAG_URL <<<"$state"
+        [[ "${observed_percent:-0}" == 0 || "$observed_percent" == "$completed_traffic" ]] || die "$label candidate has unexpected traffic $observed_percent%"
+        TARGET_TRAFFIC="$observed_percent"
+        [[ "$TARGET_TAG_URL" =~ ^https://[^[:space:]/]+$ ]] || die "$label tagged candidate URL is unavailable"
+        pass "$label candidate: exact digest, deterministic revision and tag at $TARGET_TRAFFIC% traffic"
+        return
+      fi
+      info "$label candidate revision $TARGET_REVISION is not Ready; preserving it and selecting an exact-digest retry revision"
+      continue
+    fi
+    gcloud run deploy "$service" --image="$IMAGE_REPOSITORY@$IMAGE_DIGEST" --revision-suffix="$suffix" --no-traffic --tag="$TARGET_TAG" --region "$REGION" --project "$project" --quiet >/dev/null || die "$label no-traffic candidate deployment failed"
+    state="$(service_state "$project" "$service" "$TARGET_REVISION" "$TARGET_TAG" true)" || die "$label candidate tag state is not authoritative"
+    IFS=$'\t' read -r observed_percent TARGET_TAG_URL <<<"$state"
+    TARGET_TRAFFIC="$observed_percent"
+    [[ "$TARGET_TRAFFIC" == 0 || "$TARGET_TRAFFIC" == "$completed_traffic" ]] || die "$label candidate has unexpected traffic $TARGET_TRAFFIC%"
+    pass "$label candidate: exact digest, deterministic revision and tag at $TARGET_TRAFFIC% traffic"
+    return
+  done
+  die "$label has no safe deterministic retry revision slot for this digest"
 }
 
 smoke_candidate() {

@@ -235,19 +235,35 @@ grep -Fq "three different Google Cloud projects" "$TEST_ROOT/bad-release.log" ||
 pass "production project rejected as release/build project"
 
 : > "$CALLS"
-run_release --stage --dry-run > "$TEST_ROOT/dry.log" 2>&1
-! grep -Eq 'builds submit|run deploy|update-traffic' "$CALLS" || fail "stage dry-run mutated external state"
-pass "stage dry-run stops before mutation"
+run_release --candidate --dry-run > "$TEST_ROOT/candidate-dry.log" 2>&1
+! grep -Eq 'builds submit|run deploy|update-traffic' "$CALLS" || fail "candidate dry-run mutated external state"
+pass "candidate dry-run stops before mutation"
+
+: > "$CALLS"
+printf 'CANDIDATE\n' | run_release --candidate > "$TEST_ROOT/candidate.log" 2>&1
+grep -Fq "CANDIDATE: AVAILABLE" "$TEST_ROOT/candidate.log" || fail "candidate was not handed over"
+grep -Fq "Candidate URL : https://candidate-${EXPECTED_SHA:0:12}---sample-web-stage.example.test" "$TEST_ROOT/candidate.log" || fail "candidate URL was not reported"
+grep -Fq "Visual Studio : https://candidate-${EXPECTED_SHA:0:12}---sample-web-stage.example.test/studio (sign-in and publishing unavailable" "$TEST_ROOT/candidate.log" || fail "candidate visual Studio URL was not reported safely"
+grep -Fq "Commit        : $EXPECTED_SHA" "$TEST_ROOT/candidate.log" || fail "candidate commit was not reported"
+grep -Fq "Manual scope  : visual/UI review only" "$TEST_ROOT/candidate.log" || fail "candidate handoff did not limit the manual review scope"
+grep -Fq "Next approval : STAGE routes this exact candidate" "$TEST_ROOT/candidate.log" || fail "candidate handoff did not explain the next approval"
+[[ ! -f "$REPO/.release-evidence/staging.json" ]] || fail "candidate created a promotion-ready receipt"
+[[ "$(grep -c 'gcloud builds submit' "$CALLS")" -eq 1 ]] || fail "candidate did not submit exactly one build"
+grep -Fq -- "--service-account=projects/release-project-123/serviceAccounts/$BUILD_IDENTITY" "$CALLS" || fail "candidate did not use the dedicated build identity"
+grep -Fq -- "--gcs-source-staging-dir=gs://release-project-123-build-source/source" "$CALLS" || fail "candidate did not use the dedicated source bucket"
+grep -Fq "run deploy sample-web-stage" "$CALLS" || fail "candidate revision was not deployed"
+grep -Fq -- "--no-traffic" "$CALLS" || fail "candidate was not deployed with zero traffic"
+grep -Fq "curl -sS --max-redirs 0" "$CALLS" || fail "candidate smoke followed redirects"
+! grep -Fq "update-traffic sample-web-stage" "$CALLS" || fail "candidate changed normal staging traffic"
+! grep -Fq "verify-ok" "$CALLS" || fail "candidate ran authenticated staging automation"
+pass "zero-traffic visual candidate remains non-promotable"
 
 : > "$CALLS"
 printf 'STAGE\n' | run_release --stage > "$TEST_ROOT/stage.log" 2>&1
 grep -Fq "STAGE: PASS" "$TEST_ROOT/stage.log" || fail "stage did not pass"
 [[ -f "$REPO/.release-evidence/staging.json" ]] || fail "stage receipt missing"
-[[ "$(grep -c 'gcloud builds submit' "$CALLS")" -eq 1 ]] || fail "stage did not submit exactly one build"
-grep -Fq -- "--service-account=projects/release-project-123/serviceAccounts/$BUILD_IDENTITY" "$CALLS" || fail "stage did not use the dedicated build identity"
-grep -Fq -- "--gcs-source-staging-dir=gs://release-project-123-build-source/source" "$CALLS" || fail "stage did not use the dedicated source bucket"
-grep -Fq "run deploy sample-web-stage" "$CALLS" || fail "staging revision was not deployed"
-grep -Fq -- "--no-traffic" "$CALLS" || fail "staging candidate was not deployed with zero traffic"
+! grep -Fq "gcloud builds submit" "$CALLS" || fail "stage rebuilt the reviewed candidate"
+! grep -Fq "run deploy sample-web-stage" "$CALLS" || fail "stage redeployed the reviewed candidate revision"
 grep -Fq "update-traffic sample-web-stage --to-revisions=sample-web-stage-${EXPECTED_SHA:0:12}=100" "$CALLS" || fail "staging traffic did not target the exact revision"
 grep -Fq "verify-ok url=https://stage.example.test" "$CALLS" || fail "staging journey did not use the stable exact-revision service origin"
 pass "build-once staging receipt and exact revision"

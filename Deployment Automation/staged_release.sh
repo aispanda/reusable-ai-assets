@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Reusable Cloud Run staging and exact-image promotion controller.
-# Mutations: Cloud Build + staging update after STAGE; production update after DEPLOY.
+# Mutations: Cloud Build + zero-traffic staging candidate after CANDIDATE;
+# staging traffic after STAGE; production traffic after DEPLOY.
 
 set -euo pipefail
 
@@ -42,6 +43,9 @@ fi
 run_route_curl() {
   "${CURL_BIN[@]}" -sS -L --max-redirs 10 --retry 2 --retry-all-errors --retry-delay 2 --max-time 30 "$@"
 }
+run_candidate_curl() {
+  "${CURL_BIN[@]}" -sS --max-redirs 0 --retry 2 --retry-all-errors --retry-delay 2 --max-time 30 "$@"
+}
 
 usage() {
   cat <<'EOF'
@@ -49,18 +53,20 @@ Usage: STAGED_RELEASE_CONFIG=/path/to/config bash staged_release.sh MODE [--dry-
 
 Modes:
   --check         Validate repository, isolation, tools and existing cloud prerequisites.
+  --candidate     Build once and expose a zero-traffic staging candidate for visual review.
   --stage         Build once, deploy immutable digest to staging, test, and write receipt.
   --verify-stage  Re-verify the receipt, staging digest, route and project test command.
   --promote       Promote the receipt's exact digest to production without rebuilding.
 
---stage requires exact token STAGE. --promote requires exact token DEPLOY.
+--candidate requires exact token CANDIDATE. --stage requires exact token STAGE.
+--promote requires exact token DEPLOY.
 First-time infrastructure, IAM, secrets, DNS and database creation are never performed.
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --check|--stage|--verify-stage|--promote)
+    --check|--candidate|--stage|--verify-stage|--promote)
       [[ -z "$MODE" ]] || die "only one mode is allowed"
       MODE="$1"; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
@@ -69,8 +75,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 [[ -n "$MODE" ]] || { usage; die "select a mode"; }
-[[ "$DRY_RUN" -eq 0 || "$MODE" == "--stage" || "$MODE" == "--promote" ]] \
-  || die "--dry-run is valid only with --stage or --promote"
+[[ "$DRY_RUN" -eq 0 || "$MODE" == "--candidate" || "$MODE" == "--stage" || "$MODE" == "--promote" ]] \
+  || die "--dry-run is valid only with --candidate, --stage or --promote"
 
 normalize_path() {
   local path="$1"
@@ -355,9 +361,24 @@ ensure_candidate_revision() {
 
 smoke_candidate() {
   local label="$1" code
-  code="$(run_route_curl -o /dev/null -w '%{http_code}' "$TARGET_TAG_URL$HEALTH_ROUTE")" || die "$label tagged candidate is unavailable"
+  code="$(run_candidate_curl -o /dev/null -w '%{http_code}' "$TARGET_TAG_URL$HEALTH_ROUTE")" || die "$label tagged candidate is unavailable"
   [[ "$code" == 200 ]] || die "$label tagged candidate returned HTTP $code"
-  pass "$label tagged no-traffic candidate smoke passed"
+  pass "$label tagged no-traffic candidate smoke passed without following redirects"
+}
+
+print_candidate_handoff() {
+  local reviewed_at
+  reviewed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "CANDIDATE: AVAILABLE — isolated staging candidate; normal staging traffic unchanged."
+  echo "Candidate URL : $TARGET_TAG_URL"
+  echo "Visual Studio : $TARGET_TAG_URL/studio (sign-in and publishing unavailable on this tagged origin)"
+  echo "Candidate created: $reviewed_at"
+  echo "Staging       : $STAGING_PROJECT / $STAGING_SERVICE / $TARGET_REVISION"
+  echo "Commit        : $FULL_SHA"
+  echo "Image         : $IMAGE_REPOSITORY@$IMAGE_DIGEST"
+  echo "Data boundary : $STAGING_DATA_BOUNDARY (isolated; no production change)"
+  echo "Manual scope  : visual/UI review only. This tagged origin is not an authenticated publisher test."
+  echo "Next approval : STAGE routes this exact candidate to normal staging, runs authenticated verification, revalidates it, and creates the staging receipt; it does not approve production."
 }
 
 route_exact_revision() {
@@ -454,6 +475,16 @@ case "$MODE" in
     stage_preflight
     run_readonly_verifier "$PRODUCTION_PREREQUISITE_VERIFY_COMMAND" "production prerequisite verification" "$PRODUCTION_PROJECT" "$PRODUCTION_SERVICE"
     echo "CHECK: PASS — isolated staging prerequisites exist; nothing was deployed."
+    ;;
+  --candidate)
+    stage_preflight
+    [[ ! -f "$STAGING_RECEIPT" ]] || die "staging evidence already exists; use --verify-stage or --promote instead of creating a new manual candidate"
+    if ! gate CANDIDATE "ZERO-TRAFFIC STAGING CANDIDATE"; then exit 0; fi
+    build_image
+    ensure_candidate_revision "$STAGING_PROJECT" "$STAGING_SERVICE" staging "$EXPECTED_STAGING_TRAFFIC_PERCENT"
+    [[ "$TARGET_TRAFFIC" == 0 ]] || die "manual candidate already receives $TARGET_TRAFFIC% staging traffic; a zero-traffic visual review is no longer available"
+    smoke_candidate staging
+    print_candidate_handoff
     ;;
   --stage)
     stage_preflight

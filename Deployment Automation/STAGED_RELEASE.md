@@ -32,14 +32,16 @@ Keep only the profile and an optional thin launcher in the project. Do not copy 
 
 ```bash
 STAGED_RELEASE_CONFIG=/project/.staged-release.config bash /library/Deployment\ Automation/staged_release.sh --check
-STAGED_RELEASE_CONFIG=/project/.staged-release.config bash /library/Deployment\ Automation/staged_release.sh --stage --dry-run
+STAGED_RELEASE_CONFIG=/project/.staged-release.config bash /library/Deployment\ Automation/staged_release.sh --candidate --dry-run
+STAGED_RELEASE_CONFIG=/project/.staged-release.config bash /library/Deployment\ Automation/staged_release.sh --candidate
 STAGED_RELEASE_CONFIG=/project/.staged-release.config bash /library/Deployment\ Automation/staged_release.sh --stage
 STAGED_RELEASE_CONFIG=/project/.staged-release.config bash /library/Deployment\ Automation/staged_release.sh --verify-stage
 STAGED_RELEASE_CONFIG=/project/.staged-release.config bash /library/Deployment\ Automation/staged_release.sh --promote --dry-run
 STAGED_RELEASE_CONFIG=/project/.staged-release.config bash /library/Deployment\ Automation/staged_release.sh --promote
 ```
 
-- `--stage` accepts only `STAGE`. It builds once under the dedicated build identity (or resumes the one exact successful Build ID), retrieves the digest from that resource, deploys a deterministic tagged revision with zero traffic, smokes that tag, routes the isolated staging service to the exact revision, runs the authenticated journey on the service's stable origin, revalidates the exact revision, then atomically creates the staging receipt.
+- `--candidate` accepts only `CANDIDATE`. It builds once under the dedicated build identity (or resumes the one exact successful Build ID), retrieves the digest, deploys a deterministic tagged revision with zero traffic, smokes that tag and prints an exact candidate URL for visual/UI review. It does not change normal staging traffic, run authenticated automation or create a promotion-ready receipt. A tagged URL is a separate browser origin: do not add dynamic tag hosts to Firebase authorized domains merely to test sign-in there.
+- `--stage` accepts only `STAGE`. It reuses the exact candidate image/revision when present, routes the isolated staging service to that exact revision, runs the authenticated journey on its stable origin, revalidates the exact revision, then atomically creates the staging receipt. This is a separate approval from `--candidate` and still does not authorize production.
 - `--verify-stage` revalidates the receipt, exact Build resource, revision, digest, traffic, URL and project verification command without rebuilding.
 - `--promote` accepts only `DEPLOY`. It revalidates staging, deploys the receipt digest to a deterministic tagged production revision with zero traffic, smokes the tag, routes traffic to that exact revision, and writes a separate promotion receipt. It never runs Cloud Build.
 

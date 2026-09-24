@@ -1,0 +1,36 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import site from '@/site';
+---
+<BaseLayout title={site.siteName} description={site.description}>
+  <section class="shell">
+    <h1>{site.siteName}</h1><p>{site.description}</p>
+    <div data-article-list aria-live="polite">Loading articles…</div>
+  </section>
+</BaseLayout>
+<script>
+  const list = document.querySelector<HTMLElement>('[data-article-list]');
+  if (list) {
+    try {
+      const response = await fetch('/api/content/articles');
+      if (!response.ok) throw new Error('Articles could not be loaded.');
+      const payload = await response.json();
+      const articles = Array.isArray(payload) ? payload : payload.articles;
+      if (!Array.isArray(articles)) throw new Error('Article listing is unavailable.');
+      list.replaceChildren();
+      if (!articles.length) list.textContent = 'No articles have been published yet.';
+      for (const article of articles) {
+        const row = document.createElement('article');
+        const heading = document.createElement('h2');
+        const link = document.createElement('a');
+        link.href = '/' + encodeURIComponent(article.slug);
+        link.textContent = article.title;
+        heading.append(link);
+        const excerpt = document.createElement('p');
+        excerpt.textContent = article.excerpt ?? '';
+        row.append(heading, excerpt);
+        list.append(row);
+      }
+    } catch (error) { list.textContent = error instanceof Error ? error.message : 'Articles could not be loaded.'; }
+  }
+</script>

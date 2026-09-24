@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.astro/
+.env
+.env.*
+!.env.example
+*.log
+.firebase/
+.staging-auth/
+test-results/
+playwright-report/
+coverage/

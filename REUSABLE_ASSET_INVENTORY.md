@@ -49,6 +49,11 @@ Parked cross-project work. Owning `ASSET.md` holds detail; do not duplicate in c
 
 ### RA-005 / RA-006 — Brand strategy → expression (2026-08-08)
 
+**RA-006 local candidate:** [Blog/community installable capability](AI-Native%20Website%20Delivery%20System/deliver-blog-community/CAPABILITY.md)
+v0.2.0-rc.7 for Google sign-in, role requests, comments and blog versions. Includes
+runtime, locked dependencies, install/rollback, 36-scenario test mapping and agents.
+Full browser/live adoption certification remains unproven; no new top-level asset.
+
 **Trigger keywords:** brand voice, vibe identity, mission vision north star, onlyness, personal blog posture, emotion to interface, logo from feeling  
 **Decision:** Enhance existing RA-005 + RA-006; **no new RA** (owner ACCEPT).  
 **RA-005 owns:** seed capture, brand-voice-identity-flow (Q1–Q16 + entity/commercial posture), vibe brief template, privacy/gitignore rules for private transcripts.  

@@ -15,6 +15,12 @@ Keep this skill topic-neutral. Never copy a source project's names, domains, rou
 
 ## Workflow
 
+For a reusable Google-login, role-request, commenting and editorial-publishing
+capability, route to [deliver-blog-community](../deliver-blog-community/SKILL.md).
+That extension is an installable local integration candidate; deployed consumer
+acceptance and production readiness must be established separately.
+Do not apply it as a replacement for an existing site without reviewing compatibility.
+
 ### 1. Inspect before proposing
 
 Read repository instructions, current routes, build configuration, content sources, design tokens, tests, hosting contract, and recent user changes. Reuse established components and automation. Do not overwrite unexplained work or impose this starter on an existing coherent stack.

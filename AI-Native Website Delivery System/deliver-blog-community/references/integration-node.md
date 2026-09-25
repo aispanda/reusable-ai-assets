@@ -3,12 +3,17 @@
 Use `assets/integrations/node-blog.mjs` when the consumer already owns a Node HTTP
 server and Firebase connections. Initialize the installed runtime with its explicit
 runtime configuration and the consumer's existing db/auth/bucket objects, then call
-`mountBlog({server, distRoot})`. In the host handler, return when the mount returns
+`mountBlog({server, distRoot, hostDistRoot})`. In the host handler, return when the mount returns
 true; otherwise continue existing routing. No second listener is required.
 
 The mount owns account/editorial aliases, collection and story indexes, story pages,
 content APIs, content images and Firebase auth helper routes. It delegates existing
-packaged Astro assets only; unrelated host assets and APIs remain with the host.
+packaged Astro assets and unique historical hashed entries; unrelated host assets
+and APIs remain with the host. Pass the host build directory as `hostDistRoot`
+so historical fallback never replaces an existing host bundle. The historical comments
+entry loads its current entry URL after current public configuration is available;
+shared modules retain their exports.
+compatibility responses use `no-cache`. Frozen article HTML remains unchanged.
 Inspect collisions before activation. Host home/navigation/branding stay consumer-owned.
 
 Install from an exact archive/version/SHA-256, build with the consumer's site and

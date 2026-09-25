@@ -26,3 +26,20 @@ test('only existing packaged assets are delegated and requests retain method/bod
     const host = { url: '/api/ai/connections' }; assert.equal(handler(host, res), false); assert.equal(host.url, '/api/ai/connections');
   } finally { rmSync(root, { recursive: true }); }
 });
+
+test('retired hashed entries reach compatibility serving without taking over host assets', () => {
+  const root = mkdtempSync(join(tmpdir(), 'blog-old-assets-'));
+  const host = mkdtempSync(join(tmpdir(), 'blog-host-assets-'));
+  try {
+    mkdirSync(join(root, '_astro')); mkdirSync(join(host, '_astro'));
+    writeFileSync(join(root, '_astro', 'Comments.astro_astro_type_script_index_0_lang.current1.js'), 'test');
+    const old = '/_astro/Comments.astro_astro_type_script_index_0_lang.retired1.js';
+    assert.equal(blogRoute(old + '?v=1', root, host), old + '?v=1');
+    assert.equal(blogRoute('/_astro/host-only.retired1.js', root, host), null);
+    writeFileSync(join(host, old), 'host owns this exact URL');
+    assert.equal(blogRoute(old, root, host), null);
+    writeFileSync(join(root, '_astro', 'Comments.astro_astro_type_script_index_0_lang.current2.js'), 'ambiguous');
+    assert.equal(blogRoute(old, root), null);
+    assert.equal(blogRoute('/_astro/nested/Comments.astro_astro_type_script_index_0_lang.retired1.js', root), null);
+  } finally { rmSync(root, { recursive: true }); rmSync(host, { recursive: true }); }
+});

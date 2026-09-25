@@ -6,3 +6,16 @@ test('catalogue escapes content, omits archived collections and links to stable 
 test('detail includes only matching public articles; missing or archived collection is not found',()=>{const html=renderCollectionsPage({collections,articles:[{slug:'one',title:'One',collectionIds:['sample']},{slug:'two',title:'Two',collectionIds:[]}],collectionId:'sample'});assert.ok(html.includes('/stories/one'));assert.ok(!html.includes('/stories/two'));assert.equal(renderCollectionsPage({collections,articles:[],collectionId:'hidden'}),null);});
 test('untrusted external or protocol-relative artwork cannot inject attributes',()=>{const html=renderCollectionsPage({collections:[{id:'x',title:'X',art:{src:'//evil.test/a',alt:'bad'}}],articles:[]});assert.ok(!html.includes('<img'));});
 test('all-articles index uses public story links across collections',()=>{const html=renderCollectionsPage({collections,articles:[{slug:'one',title:'One',excerpt:'Read it',collectionIds:[]}],allArticles:true});assert.ok(html.includes('Stories &amp; insights'));assert.ok(html.includes('/stories/one'));});
+
+test('empty collections index explains missing collections and provides a useful exit', () => {
+  const html = renderCollectionsPage({collections: [], articles: []});
+  assert.ok(html.includes('No collections are available yet.'));
+  assert.ok(!html.includes('No published articles yet.'));
+  assert.ok(html.includes('<footer><a href="/">Back to home</a></footer>'));
+  assert.ok(html.includes('href="/topics" aria-current="page"'));
+});
+test('empty collection detail retains article empty state and returns to catalogue', () => {
+  const html = renderCollectionsPage({collections, articles: [], collectionId: 'sample'});
+  assert.ok(html.includes('No published articles yet.'));
+  assert.ok(html.includes('<footer><a href="/topics">All collections</a></footer>'));
+});

@@ -129,6 +129,46 @@ export async function runEditorialBrowserJourney({ origin, packageSha256, artifa
     assert.ok(html.includes('Reusable browser journey') && html.includes('A reader asks a careful question.'));
     assert.ok(html.includes('data-article-layout="study-reflection"'));
     checks.push('Administrator reviews without editing and publishes the submitted revision; anonymous page contains exact title, prose and layout');
+    // Emulate frozen HTML from an earlier host release, without rewriting any
+    // stored publication. Exercise the real host asset route and module graph.
+    const commentsEntry = html.match(/src="(\/_astro\/Comments\.[^"]+\.js)"/)?.[1];
+    assert.ok(commentsEntry, 'Published page must include the comments entry');
+    const retiredEntry = commentsEntry.replace(/\.[A-Za-z0-9_-]{8,32}\.js$/, '.retired1.js');
+    assert.notEqual(retiredEntry, commentsEntry);
+    const compatibility = await fetch(origin + retiredEntry);
+    assert.equal(compatibility.status, 200, 'Historical comments bundle remains reachable through host mount');
+    assert.match(compatibility.headers.get('content-type'), /text\/javascript/);
+    assert.equal(compatibility.headers.get('cache-control'), 'no-cache');
+    const legacyHtml = html.replace(commentsEntry, retiredEntry)
+      .replaceAll('__BLOG_RUNTIME_CONFIG__', '__LEGACY_SITE_CONFIG__')
+      .replace(/<p[^>]*data-comments-auth-state[^>]*>[^<]*<\/p>/, '')
+      .replace(/(data-comments-signed-out) hidden/, '$1');
+    const historicalUrl = origin + '/stories/' + fixture;
+    const serveLegacy = route => route.fulfill({ status: 200, contentType: 'text/html', body: legacyHtml });
+    // Fulfilled legacy HTML has no network address classification. Permit only
+    // this isolated test origin to reach the explicitly configured emulators.
+    await admin.page.context().grantPermissions(['local-network-access'], { origin });
+    const commentFailures = [];
+    admin.page.on('requestfailed', request => commentFailures.push({ url: request.url().split('?')[0], error: request.failure()?.errorText }));
+    admin.page.on('console', message => { if (['error', 'warning'].includes(message.type())) commentFailures.push(message.text()); });
+    await admin.page.route(historicalUrl, serveLegacy);
+    await admin.page.goto(historicalUrl);
+    try { await expect(admin.page.locator('[data-comments-composer]')).toBeVisible(); }
+    catch (error) { throw new Error('Historical comments: ' + await admin.page.locator('[data-comments]').innerText() + '\n' + JSON.stringify(commentFailures), { cause: error }); }
+    await expect(admin.page.locator('[data-comments-signed-out]')).toBeHidden();
+    await expect(admin.page.locator('[data-comments-count]')).toHaveText('0 comments');
+    const anonymousContext = await browser.newContext(); contexts.push(anonymousContext);
+    await anonymousContext.grantPermissions(['local-network-access'], { origin });
+    await anonymousContext.route('**/*', route => ['localhost', '127.0.0.1'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
+    const anonymousPage = await anonymousContext.newPage();
+    anonymousPage.on('pageerror', error => errors.push(error.message));
+    await anonymousPage.route(historicalUrl, serveLegacy);
+    await anonymousPage.goto(historicalUrl);
+    await expect(anonymousPage.locator('[data-comments-signed-out]')).toBeVisible();
+    await expect(anonymousPage.locator('[data-comments-composer]')).toBeHidden();
+    await expect(anonymousPage.locator('[data-comments-count]')).toHaveText('0 comments');
+    assert.equal(await (await fetch(historicalUrl)).text(), html, 'Serving retired scripts does not mutate the frozen publication');
+    checks.push('Historical comments script resolves with no-cache; restored account can compose without sign-in, anonymous reader cannot, frozen HTML stays unchanged');
     assert.deepEqual(errors, []);
     return { packageSha256, checks, authentication: 'Emulator session; production Google OAuth remains a separate hosted check' };
   } finally {

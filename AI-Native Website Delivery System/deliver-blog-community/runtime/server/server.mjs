@@ -469,10 +469,16 @@ const serveStatic = async (request, response, url) => {
   if (!file) {
     const compatibleAsset = await resolveCompatibleVersionedAsset(requested);
     if (compatibleAsset) {
-      // Published HTML is immutable and may retain an older Astro content hash.
-      // Serve the sole current asset with the same logical entry name, but never
-      // cache the compatibility response as immutable under the historical URL.
-      await serveFile(request, response, compatibleAsset, 200, 'no-cache');
+      // Keep frozen article bytes intact. Historical JS may predate the shared
+      // config name: initialize current public config before loading its current
+      // entry URL, whose relative dependencies must resolve under its real name.
+      if (/^Comments\.astro_astro_type_script_index_\d+_lang\.[A-Za-z0-9_-]+\.js$/.test(basename(compatibleAsset))) {
+        const config = JSON.stringify(RUNTIME_PUBLIC_CONFIG).replaceAll('<', '\\u003c');
+        const entry = JSON.stringify('/_astro/' + basename(compatibleAsset));
+        serveText(request, response, `globalThis.__BLOG_RUNTIME_CONFIG__=${config};\nawait import(${entry});\n`, 'text/javascript; charset=utf-8', 200, 'no-cache');
+      } else {
+        await serveFile(request, response, compatibleAsset, 200, 'no-cache');
+      }
       return;
     }
   }

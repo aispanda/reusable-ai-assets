@@ -2,6 +2,47 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStartupStorageBucket, loadStartupConfig } from '../server/startup-config.mjs';
 import { createStudioImageAsset } from '../server/studio-content-assets.mjs';
+import { createBlogServer } from '../server/server.mjs';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+test('historical comments bootstrap current config while shared chunks preserve exports', async () => {
+  const distRoot = await mkdtemp(join(tmpdir(), 'blog-compatible-'));
+  let server;
+  try {
+    await mkdir(join(distRoot, '_astro'));
+    const entry = 'Comments.astro_astro_type_script_index_0_lang.current1.js';
+    await writeFile(join(distRoot, '_astro', entry), 'export {};');
+    const chunk = 'export const answer = 42; export default "intact";';
+    await writeFile(join(distRoot, '_astro', 'shared.current1.js'), chunk);
+    await writeFile(join(distRoot, '_astro', 'style.current1.css'), 'body{color:black}');
+    const config = { firebase: { projectId: 'demo-compatible' }, environment: 'staging' };
+    server = createBlogServer({ db: {}, auth: {}, bucket: {}, siteOrigin: 'http://127.0.0.1', runtimeConfig: config, distRoot });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const origin = 'http://127.0.0.1:' + server.address().port;
+    const response = await fetch(origin + '/_astro/' + entry.replace('current1', 'retired1'));
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-cache');
+    assert.match(response.headers.get('content-type'), /text\/javascript/);
+    const bootstrap = await response.text();
+    assert.ok(bootstrap.indexOf('globalThis.__BLOG_RUNTIME_CONFIG__=') < bootstrap.indexOf('await import('));
+    assert.ok(bootstrap.includes(JSON.stringify(config)) && bootstrap.includes(entry));
+    const shared = await fetch(origin + '/_astro/shared.retired1.js');
+    assert.equal(shared.headers.get('cache-control'), 'no-cache');
+    assert.equal(await shared.text(), chunk);
+    const exports = await import('data:text/javascript,' + encodeURIComponent(chunk));
+    assert.equal(exports.answer, 42); assert.equal(exports.default, 'intact');
+    const css = await fetch(origin + '/_astro/style.retired1.css');
+    assert.match(css.headers.get('content-type'), /text\/css/);
+    assert.equal(await css.text(), 'body{color:black}');
+    const head = await fetch(origin + '/_astro/' + entry.replace('current1', 'retired1'), { method: 'HEAD' });
+    assert.equal(head.status, 200); assert.equal(await head.text(), '');
+  } finally {
+    if (server) await new Promise(resolve => server.close(resolve));
+    await rm(distRoot, { recursive: true, force: true });
+  }
+});
 
 export const emulatorEnvironment = (overrides = {}) => ({
   BLOG_EMULATOR_MODE: 'true',

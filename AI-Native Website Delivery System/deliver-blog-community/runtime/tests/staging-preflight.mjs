@@ -1,5 +1,35 @@
 import { readFile } from 'node:fs/promises';
 
+export const requiredImageStoragePermissions = Object.freeze([
+  'storage.objects.create', 'storage.objects.get', 'storage.objects.delete',
+]);
+
+// Read-only deployment prerequisite, not a replacement for a real hosted upload.
+// Metadata and effective IAM observations come from the consumer's cloud adapter.
+export async function verifyImageStoragePrerequisites({ bucketName, projectNumber, runtimeIdentity,
+  readBucketMetadata, checkPermission }) {
+  if (!/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(bucketName || '')
+    || !/^[0-9]+$/.test(String(projectNumber || ''))
+    || !/^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/.test(runtimeIdentity || '')) {
+    throw new Error('An explicit image bucket, owning project number and runtime service account are required.');
+  }
+  const metadata = await readBucketMetadata(bucketName);
+  if (metadata?.name !== bucketName || String(metadata?.projectNumber) !== String(projectNumber)) {
+    throw new Error('Configured image bucket is missing or belongs to another project.');
+  }
+  if (metadata.iamConfiguration?.uniformBucketLevelAccess?.enabled !== true
+    || metadata.iamConfiguration?.publicAccessPrevention !== 'enforced') {
+    throw new Error('Image bucket must enforce uniform bucket-level access and public access prevention to protect private drafts.');
+  }
+  const resource = `//storage.googleapis.com/projects/_/buckets/${bucketName}`;
+  for (const permission of requiredImageStoragePermissions) {
+    const access = await checkPermission({ resource, principalEmail: runtimeIdentity, permission });
+    if (access !== 'CAN_ACCESS') throw new Error(`Runtime image storage permission is missing or unproven: ${permission}.`);
+  }
+  return { bucketName, projectNumber: String(projectNumber), runtimeIdentity,
+    permissions: [...requiredImageStoragePermissions], private: true };
+}
+
 const requiredText = (value, field) => {
   if (typeof value !== 'string' || !value.trim()) throw new Error(`${field} is required for the hosted staging test.`);
   return value.trim();

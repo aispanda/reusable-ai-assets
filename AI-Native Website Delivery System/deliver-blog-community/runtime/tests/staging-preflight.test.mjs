@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateStagingInputs, validateStagingSession } from './staging-preflight.mjs';
+import { validateStagingInputs, validateStagingSession, verifyImageStoragePrerequisites, requiredImageStoragePermissions } from './staging-preflight.mjs';
 import { runHostedPublicationJourney } from './staging-browser-journey.mjs';
 
 const inputs = {
@@ -12,6 +12,50 @@ const inputs = {
   draftId: 'df9921ba-0b9e-4eba-991f-87e0213f4fc0', expectedSlug: 'disposable-staging-article',
 };
 const sentinel = 'PRIVATE_SESSION_SENTINEL';
+
+const storageInput = {
+  bucketName: 'journal-stage-123.firebasestorage.app', projectNumber: '123456789',
+  runtimeIdentity: 'journal-runtime@journal-stage-123.iam.gserviceaccount.com',
+};
+const storageMetadata = () => ({ name: storageInput.bucketName, projectNumber: storageInput.projectNumber,
+  iamConfiguration: { uniformBucketLevelAccess: { enabled: true }, publicAccessPrevention: 'enforced' } });
+
+test('image storage preflight verifies actual bucket ownership, private policy and runtime effective permissions', async () => {
+  const calls = [];
+  const result = await verifyImageStoragePrerequisites({ ...storageInput,
+    readBucketMetadata: async name => { assert.equal(name, storageInput.bucketName); return storageMetadata(); },
+    checkPermission: async request => { calls.push(request); return 'CAN_ACCESS'; },
+  });
+  assert.equal(result.private, true);
+  assert.deepEqual(calls.map(row => row.permission), requiredImageStoragePermissions);
+  assert.ok(calls.every(row => row.resource === `//storage.googleapis.com/projects/_/buckets/${storageInput.bucketName}`
+    && row.principalEmail === storageInput.runtimeIdentity));
+});
+
+test('missing, foreign or public image storage stops before IAM verification', async () => {
+  for (const metadata of [null, { ...storageMetadata(), name: 'different-bucket' },
+    { ...storageMetadata(), projectNumber: '999999999' },
+    { ...storageMetadata(), iamConfiguration: { uniformBucketLevelAccess: { enabled: false }, publicAccessPrevention: 'enforced' } },
+    { ...storageMetadata(), iamConfiguration: { uniformBucketLevelAccess: { enabled: true }, publicAccessPrevention: 'inherited' } }]) {
+    let calls = 0;
+    await assert.rejects(verifyImageStoragePrerequisites({ ...storageInput,
+      readBucketMetadata: async () => metadata, checkPermission: async () => { calls++; return 'CAN_ACCESS'; },
+    }));
+    assert.equal(calls, 0);
+  }
+});
+
+test('image storage permission denials, unknown results and cloud errors cannot pass', async () => {
+  for (const permission of requiredImageStoragePermissions) for (const access of ['CANNOT_ACCESS', 'UNKNOWN_INFO', undefined]) {
+    await assert.rejects(verifyImageStoragePrerequisites({ ...storageInput, readBucketMetadata: async () => storageMetadata(),
+      checkPermission: async request => request.permission === permission ? access : 'CAN_ACCESS',
+    }), new RegExp(permission));
+  }
+  await assert.rejects(verifyImageStoragePrerequisites({ ...storageInput,
+    readBucketMetadata: async () => { throw new Error('Read-only bucket query failed'); },
+    checkPermission: async () => 'CAN_ACCESS',
+  }), /bucket query failed/);
+});
 const localAuth = { name: 'firebase:authUser:fictional-key:[DEFAULT]', value: sentinel };
 const indexedAuth = { name: 'firebaseLocalStorageDb', version: 1, stores: [{ name: 'firebaseLocalStorage',
   keyPath: 'fbase_key', autoIncrement: false, indexes: [], records: [{ value: {

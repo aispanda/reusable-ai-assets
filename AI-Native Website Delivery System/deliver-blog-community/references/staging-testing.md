@@ -22,6 +22,15 @@ or reused. A successful command alone does not prove these outcomes.
 1. Use the existing deployment owner (RA-002 where available) to provision or verify
    isolated staging, runtime identity, Firebase configuration and OAuth origins.
    This asset does not grant IAM or build a second deployment controller.
+   Before an expensive build, the consumer's read-only prerequisite hook must call
+   `verifyImageStoragePrerequisites` from `runtime/tests/staging-preflight.mjs`.
+   Supply actual Cloud Storage metadata (not merely Firebase's configured bucket
+   name), the target project's numeric ID and effective IAM observations for the
+   exact runtime service account. The bucket must exist in that project, enforce
+   uniform bucket-level access and public access prevention, and allow object
+   create/get/delete. Denied, unknown or inaccessible checks fail closed; never
+   grant IAM or create a bucket inside a verifier. Check production prerequisites
+   read-only too. The hosted upload still proves actual Storage integration.
 2. Designate one disposable staging draft owned by the test actor, a fixed slug,
    and a small local image fixture. Never select the first article from a list.
 3. Sign in once in a fresh Playwright browser and save its state to an ignored local

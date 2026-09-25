@@ -14,6 +14,7 @@ Complete scenario and deployed-browser evidence remain prerequisites for promoti
 | references/adoption-prompts.md | Reusable core | Trigger prompts and exact-URL handoff contract |
 | assets/codex-agents/*.toml | Optional client adapters | Verifier and defect-fixer roles |
 | assets/scenarios.json | Reusable test specification | 36 parameterized role/lifecycle scenarios |
+| runtime/tests/staging-*.mjs | Reusable hosted verification | Isolated-session preflight; upload/save/reload/preview/publish and anonymous mobile reading |
 | assets/profile.example.json | Fictional replaceable profile | Consumer inputs; never deployment authority |
 | scripts/validate_contract.py | Reusable utility | Read-only specification/profile checks |
 | scripts/test_contract.py | Utility regression tests | Proves validation behavior, not blog behavior |

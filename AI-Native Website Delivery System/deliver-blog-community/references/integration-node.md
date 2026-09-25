@@ -15,6 +15,9 @@ entry loads its current entry URL after current public configuration is availabl
 shared modules retain their exports.
 compatibility responses use `no-cache`. Frozen article HTML remains unchanged.
 Inspect collisions before activation. Host home/navigation/branding stay consumer-owned.
+Pass the validated consumer profile's `siteName` to `createBlogServer` so generated
+collection and story pages retain the host name. The explicit option takes precedence
+over the legacy `runtimeConfig.siteName`; the generic fallback is only for unconfigured hosts.
 
 Install from an exact archive/version/SHA-256, build with the consumer's site and
 collection profiles, and retain the archive hash in its lock/evidence. Never import

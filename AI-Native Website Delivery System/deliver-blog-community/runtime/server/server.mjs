@@ -31,7 +31,7 @@ import { createStudioImageAsset, resolveStudioContentAsset } from './studio-cont
 import { saveCollectionArtwork, resolveCollectionArtwork } from './collection-artwork.mjs';
 import { buildRuntimePublicConfig, injectRuntimePublicConfig, prepareServedText } from './runtime-config.mjs';
 
-export const createBlogServer = ({ db, auth, bucket, siteOrigin, runtimeConfig, distRoot, hostArticles = [] }) => {
+export const createBlogServer = ({ db, auth, bucket, siteOrigin, runtimeConfig, distRoot, hostArticles = [], siteName = runtimeConfig?.siteName || 'Library' }) => {
 const HOST_ARTICLES = validateHostArticles(hostArticles);
 const loadPublicCatalogue = async (includeCollections = true) => {
   const [{ collections }, published] = await Promise.all([
@@ -466,7 +466,7 @@ const serveContentAsset = async (request, response, assetId) => {
 const serveStatic = async (request, response, url) => {
   if (url.pathname === '/stories' || url.pathname === '/topics' || /^\/topics\/[a-z0-9-]+$/.test(url.pathname)) {
     const { collections, articles } = await loadPublicCatalogue();
-    const html = renderCollectionsPage({ collections, articles, allArticles: url.pathname === '/stories', collectionId: url.pathname.split('/')[2], siteName: runtimeConfig.siteName || 'Library' });
+    const html = renderCollectionsPage({ collections, articles, allArticles: url.pathname === '/stories', collectionId: url.pathname.split('/')[2], siteName });
     if (!html) throw Object.assign(new Error('Collection not found.'), {statusCode:404});
     serveText(request,response,html,'text/html; charset=utf-8',200,'no-cache'); return;
   }

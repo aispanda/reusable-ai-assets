@@ -7,6 +7,37 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+test('public collection routes retain each host name and legacy branding defaults', async t => {
+  const db = { collection: name => name === 'contentCollections'
+    ? { doc: () => ({ get: async () => ({ exists: true, data: () => ({ revision: 1, collections: [{ id: 'building', title: 'Building', order: 1 }] }) }) }) }
+    : { orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) } };
+  for (const [options, configName, expected] of [
+    [{ siteName: 'Cedar & Fern' }, 'Ignored legacy name', 'Cedar &amp; Fern'],
+    [{ siteName: 'Harbor Journal' }, undefined, 'Harbor Journal'],
+    [{}, 'Existing host', 'Existing host'],
+    [{}, undefined, 'Library'],
+  ]) {
+    await t.test(expected, async () => {
+      const server = createBlogServer({ db, auth: {}, bucket: {}, distRoot: '.', siteOrigin: 'http://127.0.0.1',
+        runtimeConfig: { firebase: { projectId: 'demo-site-name' }, ...(configName ? { siteName: configName } : {}) }, ...options });
+      try {
+        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+        const origin = `http://127.0.0.1:${server.address().port}`;
+        for (const path of ['/topics', '/topics/building', '/stories']) {
+          const response = await fetch(origin + path);
+          assert.equal(response.status, 200);
+          const html = await response.text();
+          assert.ok(html.includes(` · ${expected}</title>`), `${path} title`);
+          assert.ok(html.includes(`<a href="/">${expected}</a>`), `${path} home link`);
+        }
+      } finally {
+        server.closeAllConnections();
+        await new Promise(resolve => server.close(resolve));
+      }
+    });
+  }
+});
+
 test('host articles share discovery across the API and collections without owning their routes', async t => {
   const registry = { revision: 1, collections: [{ id: 'building', title: 'Building', order: 1 }] };
   const db = { collection: name => name === 'contentCollections'

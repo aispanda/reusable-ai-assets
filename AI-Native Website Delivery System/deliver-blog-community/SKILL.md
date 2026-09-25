@@ -15,6 +15,8 @@ alone never establish tested delivery or complete scenario coverage.
 - **Repeatable adoption:** use [the deterministic driver](references/adoption-driver.md)
   for pinned install, verification and guarded upgrades. Keep consumer configuration outside core.
 - **Native Node host:** use [the native mount](references/integration-node.md) to preserve host routes.
+- **Staging and autonomous browser testing:** use [the shared staging journey](references/staging-testing.md)
+  with the consumer's isolated project, designated fixture and captured test session.
 - **Collections/users:** the runtime includes administrator collection and user management,
   role invitations, application review and artwork uploads. A cross-site versioned media library is not included.
 - **Assess/adopt:** validate the consumer profile against [the contract](references/contract.md).

@@ -1,12 +1,12 @@
 :root {
-  --canvas: #f3f1ea;
+  --canvas: #fbfaf6;
   --surface: #ffffff;
-  --ink: #12141a;
+  --ink: #1d302b;
   --muted: #5a5f68;
   --line: #d9d6cc;
   --solar: #e8a01a;
   --solar-deep: #c97810;
-  --clarity: #2f6fe0;
+  --clarity: #176a53;
   --spectrum-teal: #2eb8b0;
   --soft-solar: #fff3d6;
   --soft-clarity: #e8f0ff;
@@ -19,7 +19,7 @@
   --shadow: 0 18px 60px rgba(18, 20, 26, .1);
   --radius: 1.15rem;
   --shell: min(1180px, calc(100vw - 2rem));
-  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
   --font-body: "Source Sans 3", "Source Sans Pro", ui-sans-serif, system-ui, sans-serif;
   font-family: var(--font-body);
   color: var(--ink);
@@ -28,6 +28,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; background: var(--canvas); color: var(--ink); line-height: 1.55; }
 a { color: inherit; text-decoration-thickness: .08em; text-underline-offset: .18em; }

@@ -1,3 +1,4 @@
+import { validArticleLayout } from '../src/scripts/article-layouts.mjs';
 import { createHash } from 'node:crypto';
 
 import { getSchema } from '@tiptap/core';
@@ -411,7 +412,7 @@ const validateNode = (node, depth, counter, version) => {
     }
   } else if (node.type === 'youtube') {
     assertOnlyKeys(node.attrs ?? {}, new Set(['videoId']), 'YouTube');
-    if (version !== 2 || typeof node.attrs?.videoId !== 'string' || !YOUTUBE_VIDEO_ID.test(node.attrs.videoId) || node.content !== undefined) throw new StudioContentError('YouTube requires media-v2 and a valid video identifier only.', { code: 'invalid-youtube-node', element: 'youtube' });
+    if (![2, 3].includes(version) || typeof node.attrs?.videoId !== 'string' || !YOUTUBE_VIDEO_ID.test(node.attrs.videoId) || node.content !== undefined) throw new StudioContentError('YouTube requires media-v2 and a valid video identifier only.', { code: 'invalid-youtube-node', element: 'youtube' });
   } else if (node.attrs !== undefined && Object.keys(node.attrs).length > 0) {
     throw new StudioContentError(`Node ${node.type} has unsupported attributes.`, {
       code: 'unsupported-json-attributes', element: node.type,
@@ -447,7 +448,7 @@ export const assertContentDocument = (document) => {
       code: 'invalid-content-document',
     });
   }
-  assertOnlyKeys(document, new Set(['format', 'schemaVersion', 'registryVersion', 'content']), 'Content document');
+  assertOnlyKeys(document, new Set(['format', 'schemaVersion', 'registryVersion', 'content', ...(document.schemaVersion === 3 ? ['layout'] : [])]), 'Content document');
   if (
     document.format !== STUDIO_CONTENT_FORMAT
     || !isSupportedStudioVersion(document)
@@ -455,6 +456,9 @@ export const assertContentDocument = (document) => {
     throw new StudioContentError('The article uses an unsupported editor schema version.', {
       code: 'unsupported-content-version',
     });
+  }
+  if (document.schemaVersion === 3 && !validArticleLayout(document.layout)) {
+    throw new StudioContentError('Choose a supported article layout.', { code: 'invalid-article-layout' });
   }
   if (utf8Bytes(stableJson(document)) > DOCUMENT_JSON_LIMIT) {
     throw new StudioContentError('The structured article is too large.', { code: 'invalid-content-size' });
@@ -487,9 +491,10 @@ export const assertContentDocument = (document) => {
   return document;
 };
 
-export const createContentDocument = (content) => assertContentDocument({
+export const createContentDocument = (content, layout) => assertContentDocument({
   format: STUDIO_CONTENT_FORMAT,
-  ...studioContentVersion(content),
+  ...studioContentVersion(content, layout),
+  ...(layout === undefined ? {} : { layout }),
   content,
 });
 
@@ -513,6 +518,7 @@ export const contentDocumentFromDraft = (draft) => assertContentDocument({
   format: draft?.format,
   schemaVersion: draft?.schemaVersion,
   registryVersion: draft?.registryVersion,
+  ...(draft?.schemaVersion === 3 ? { layout: draft?.layout } : {}),
   content: draft?.content,
 });
 

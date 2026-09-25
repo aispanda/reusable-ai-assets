@@ -1,6 +1,6 @@
 # Blog/community capability — RA-006 extension
 
-Status: **0.2.0-rc.7 — installable local integration candidate.**
+Status: **0.2.0-rc.8 — installable local integration candidate.**
 Extracted runtime, dependencies, rules, editorial/community UI and executable tests
 are included. This is not a production-certified or publicly licensed release.
 Complete scenario and deployed-browser evidence remain prerequisites for promotion.
@@ -20,7 +20,8 @@ Complete scenario and deployed-browser evidence remain prerequisites for promoti
 | runtime/ | Reusable code | Astro/Node/Firebase service, UI, rules, locked dependencies and tests |
 | scripts/package.mjs | Reusable utility | Hash-pinned install, repeat install and local code-pointer rollback |
 | assets/package-files.json | Transfer allowlist | Exact source files; rejects unclassified files |
-| assets/integrations/ | Optional adapters | React navigation and Flask redirect to standalone blog service |
+| assets/integrations/ | Optional adapters | Native Node mount, React navigation and Flask redirect |
+| scripts/adopt.mjs | Reusable utility | Deterministic pinned installation, verification, ownership and guarded upgrades |
 | scripts/coordination.mjs | Reusable utility | Atomic protocol, deterministic watcher and deduplication; no LLM wake API |
 | references/collection-artwork.md | Optional adapter contract | Administrator collection artwork upload, registry concurrency, generation-safe cleanup and consumer UI state |
 
@@ -46,6 +47,13 @@ task or review result warrants it; do not hardcode model names as permanent poli
 The website itself must not need these development agents to handle ordinary users.
 
 ## Runtime boundary
+
+The rc.8 runtime adds site-wide editorial roles, administrator-only collection/user
+management, role applications and invitations, explicit review submission/return,
+author unpublication, administrator-only trash after unpublication, three article
+presentations, and generic public collection/article indexes. Publishers cannot
+edit another author's draft; adaptations remain separately attributed articles.
+These are packaged capabilities, not a claim that every consumer has passed acceptance.
 
 This prerelease keeps v1 readers and original stored bytes, and adds opt-in v2
 drafts for image credit and normalized, consent-loaded YouTube nodes. Publication

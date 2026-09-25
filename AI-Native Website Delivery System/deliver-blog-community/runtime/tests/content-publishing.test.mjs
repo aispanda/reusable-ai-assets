@@ -58,7 +58,7 @@ class FakeSnapshot {
 
 class FakeDb {
   constructor(initial = {}) {
-    this.records = new Map(Object.entries(initial).map(([key, value]) => [key, clone(value)]));
+    this.records = new Map(Object.entries({'contentCollections/registry': {revision:0, collections:[{id:'reading',title:'Reading',type:'text',order:10}]}, ...initial}).map(([key, value]) => [key, clone(value)]));
     this.sequence = 0;
   }
 
@@ -105,7 +105,7 @@ const draft = (overrides = {}) => ({
   body: '<h1>Example Article</h1><p>Useful <strong>article</strong>.</p>',
   excerpt: 'How AI changes consulting.',
   slug: 'example-article',
-  tags: 'AI, Consulting',
+  tags: 'AI, Consulting, collection:reading',
   publicationStatus: 'draft',
   updatedAt: '2026-08-26T14:00:00.000Z',
   revisions: [],
@@ -128,12 +128,12 @@ const imageContentDocument = (assetId = imageAssetId) => createContentDocument({
   ],
 });
 
-const canonicalDraft = (overrides = {}) => ({
+const canonicalDraft = (overrides = {}) => { const value = {
   title: 'Example Article',
   ...canonicalContentFields(contentDocument()),
   excerpt: 'How AI changes consulting.',
   slug: 'example-article',
-  tags: 'AI, Consulting',
+  tags: 'AI, Consulting, collection:reading',
   publicationStatus: 'draft',
   publicationReleaseId: '',
   publicationLiveUrl: '',
@@ -143,7 +143,7 @@ const canonicalDraft = (overrides = {}) => ({
   ownerUid: 'author-1',
   ownerEmail: 'author@example.com',
   ...overrides,
-});
+}; if(value.reviewStatus === 'submitted'){ value.submittedRevision=value.revision; value.submittedContentSha256=value.contentSha256; } return value; };
 
 const canonicalSavePayload = (record, document = contentDocument()) => ({
   title: record.title,
@@ -244,7 +244,7 @@ test('publication validation produces a stable safe snapshot and rejects reserve
   const article = validateDraftForPublication(canonicalDraft());
   assert.equal(article.slug, 'example-article');
   assert.equal(article.bodyHtml, '<p>Useful article.</p>');
-  assert.deepEqual(article.tags, ['AI', 'Consulting']);
+  assert.deepEqual(article.tags, ['AI', 'Consulting', 'collection:reading']);
   assert.equal(validateDraftForPublication(canonicalDraft()).bodyHtml, '<p>Useful article.</p>');
   assert.throws(() => validateDraftForPublication(draft()), /Convert this legacy draft/);
   assert.throws(() => validateDraftForPublication(canonicalDraft({ slug: 'studio' })), /reserved/);
@@ -469,7 +469,7 @@ test('canonical draft creation and updates are server-owned, authorized, and con
       uid: 'author-2',
       record: unchanged,
       request: {},
-      pattern: /only drafts they own/,
+      pattern: /only articles you own/,
       statusCode: 403,
     },
     {
@@ -484,7 +484,7 @@ test('canonical draft creation and updates are server-owned, authorized, and con
     {
       name: 'stale revision',
       access: { active: true, role: 'publisher' },
-      uid: 'publisher-1',
+      uid: 'author-1',
       record: unchanged,
       request: { expectedRevision: 0 },
       pattern: /revision is stale/,
@@ -493,7 +493,7 @@ test('canonical draft creation and updates are server-owned, authorized, and con
     {
       name: 'stale timestamp',
       access: { active: true, role: 'publisher' },
-      uid: 'publisher-1',
+      uid: 'author-1',
       record: unchanged,
       request: { expectedUpdatedAt: '2026-08-26T13:59:00.000Z' },
       pattern: /changed in another session/,
@@ -502,7 +502,7 @@ test('canonical draft creation and updates are server-owned, authorized, and con
     {
       name: 'stale content hash',
       access: { active: true, role: 'publisher' },
-      uid: 'publisher-1',
+      uid: 'author-1',
       record: unchanged,
       request: { expectedContentSha256: '0'.repeat(64) },
       pattern: /content changed in another session/,
@@ -511,7 +511,7 @@ test('canonical draft creation and updates are server-owned, authorized, and con
     {
       name: 'archived draft',
       access: { active: true, role: 'publisher' },
-      uid: 'publisher-1',
+      uid: 'author-1',
       record: { ...unchanged, archivedAt: '2026-08-26T14:30:00.000Z' },
       request: {},
       pattern: /archived/,
@@ -520,7 +520,7 @@ test('canonical draft creation and updates are server-owned, authorized, and con
     {
       name: 'partial legacy provenance',
       access: { active: true, role: 'publisher' },
-      uid: 'publisher-1',
+      uid: 'author-1',
       record: { ...unchanged, legacyHtmlSha256: sha256('<p>legacy</p>') },
       request: {},
       pattern: /preserved legacy source is inconsistent/,
@@ -529,7 +529,7 @@ test('canonical draft creation and updates are server-owned, authorized, and con
     {
       name: 'forged legacy report',
       access: { active: true, role: 'publisher' },
-      uid: 'publisher-1',
+      uid: 'author-1',
       record: {
         ...unchanged,
         legacyHtmlOriginal: '<p>legacy</p>',
@@ -543,7 +543,7 @@ test('canonical draft creation and updates are server-owned, authorized, and con
     {
       name: 'forged server field',
       access: { active: true, role: 'publisher' },
-      uid: 'publisher-1',
+      uid: 'author-1',
       record: unchanged,
       request: { draft: { ...canonicalSavePayload(unchanged), ownerUid: 'attacker' } },
       pattern: /server-owned/,
@@ -552,7 +552,7 @@ test('canonical draft creation and updates are server-owned, authorized, and con
     {
       name: 'stored hash mismatch',
       access: { active: true, role: 'publisher' },
-      uid: 'publisher-1',
+      uid: 'author-1',
       record: { ...unchanged, contentSha256: 'f'.repeat(64) },
       request: {},
       pattern: /hash does not match/,
@@ -561,7 +561,7 @@ test('canonical draft creation and updates are server-owned, authorized, and con
     {
       name: 'unknown stored field',
       access: { active: true, role: 'publisher' },
-      uid: 'publisher-1',
+      uid: 'author-1',
       record: { ...unchanged, ungovernedMetadata: 'must not be erased' },
       request: {},
       pattern: /unknown field ungovernedMetadata/,
@@ -598,11 +598,11 @@ test('canonical draft creation and updates are server-owned, authorized, and con
 });
 
 test('legacy migration rejects authority, state, source, format, revision, and provenance forgery without mutation', async () => {
-  const baseline = draft();
+  const baseline = draft({ownerUid:'publisher-1'});
   const cases = [
     {
       name: 'wrong owner', uid: 'author-2', access: { active: true, role: 'author' }, record: baseline,
-      request: {}, pattern: /only drafts they own/, statusCode: 403,
+      request: {}, pattern: /only articles you own/, statusCode: 403,
     },
     {
       name: 'archived', uid: 'publisher-1', access: { active: true, role: 'publisher' },
@@ -626,7 +626,7 @@ test('legacy migration rejects authority, state, source, format, revision, and p
     },
     {
       name: 'missing owner', uid: 'publisher-1', access: { active: true, role: 'publisher' },
-      record: { ...baseline, ownerUid: '' }, request: {}, pattern: /stored draft owner is invalid/, statusCode: 409,
+      record: { ...baseline, ownerUid: '' }, request: {}, pattern: /only articles you own/, statusCode: 403,
     },
     {
       name: 'unknown stored field', uid: 'publisher-1', access: { active: true, role: 'publisher' },
@@ -700,7 +700,7 @@ test('canonical save rejects a well-formed but forged immutable migration-output
 });
 
 test('publisher creates an immutable release, live snapshot, index, audit event and live URL', async () => {
-  const record = canonicalDraft();
+  const record = canonicalDraft({ownerUid:'publisher-1'});
   const db = new FakeDb({
     'studioAccess/publisher-1': { active: true, role: 'publisher' },
     'contentDrafts/draft-1': record,
@@ -721,7 +721,7 @@ test('publisher creates an immutable release, live snapshot, index, audit event 
   };
   const result = await publishDraft(publishArgs);
 
-  assert.equal(result.liveUrl, 'https://journal.example/example-article');
+  assert.equal(result.liveUrl, 'https://journal.example/stories/example-article');
   assert.equal(db.records.get('publishedContent/example-article').releaseId, result.releaseId);
   const manifest = db.records.get(`contentReleases/${result.releaseId}`);
   assert.equal(manifest.snapshotSha256, preview.snapshotSha256);
@@ -791,7 +791,7 @@ test('Administrator completes the cloud draft lifecycle without exposing unpubli
   assert.deepEqual(await loadPublishedArticle(db, 'admin-lifecycle'), secondPublic);
   assert.equal(await loadPublishedArticle(db, 'admin-lifecycle-renamed'), null);
   const third = await publish('admin-lifecycle-release-3', '2026-09-05T10:50:00.000Z');
-  assert.equal(third.liveUrl, 'https://journal.example/admin-lifecycle-renamed');
+  assert.equal(third.liveUrl, 'https://journal.example/stories/admin-lifecycle-renamed');
   assert.notEqual(third.releaseId, second.releaseId);
   assert.equal(await loadPublishedArticle(db, 'admin-lifecycle'), null);
   const thirdPublic = await loadPublishedArticle(db, 'admin-lifecycle-renamed');
@@ -863,7 +863,7 @@ test('trash refuses a draft marked live even when its publication index is missi
 });
 
 test('publish rejects a preview receipt after a checkpoint save or template output change', async () => {
-  const record = canonicalDraft();
+  const record = canonicalDraft({ownerUid:'publisher-1'});
   const db = new FakeDb({
     'studioAccess/publisher-1': { active: true, role: 'publisher' },
     'contentDrafts/draft-1': record,
@@ -919,7 +919,7 @@ test('publish rejects a preview receipt after a checkpoint save or template outp
 });
 
 test('live pages serve validated frozen bytes and slug-changing republish creates a distinct release', async () => {
-  const record = canonicalDraft();
+  const record = canonicalDraft({ownerUid:'publisher-1'});
   const db = new FakeDb({
     'studioAccess/publisher-1': { active: true, role: 'publisher' },
     'contentDrafts/draft-1': record,
@@ -949,7 +949,7 @@ test('live pages serve validated frozen bytes and slug-changing republish create
     now: new Date('2026-08-26T16:00:00.000Z'),
   });
   assert.notEqual(second.releaseId, first.releaseId);
-  assert.equal(second.liveUrl, 'https://journal.example/example-article-v2');
+  assert.equal(second.liveUrl, 'https://journal.example/stories/example-article-v2');
   assert.equal(await loadPublishedArticle(db, 'example-article'), null);
   assert.match((await loadPublishedArticle(db, 'example-article-v2')).renderedPageHtml, /data-template="v2"/);
   assert.equal(db.records.get(`contentReleasePayloads/${first.releaseId}_page`).renderedPageHtml, firstPage);
@@ -960,7 +960,7 @@ test('live pages serve validated frozen bytes and slug-changing republish create
 
 test('image assets are draft-bound, published atomically, and made private again on unpublish', async () => {
   const document = imageContentDocument();
-  const record = canonicalDraft({ ...canonicalContentFields(document) });
+  const record = canonicalDraft({ ...canonicalContentFields(document), reviewStatus:'submitted' });
   const db = new FakeDb({
     'studioAccess/publisher-1': { active: true, role: 'publisher' },
     'contentDrafts/draft-1': record,
@@ -1023,7 +1023,7 @@ test('save rejects missing, unready, or cross-draft image references without mut
 });
 
 test('publication rejects unauthorized, stale and duplicate-slug requests without changing the draft', async () => {
-  const initialDraft = canonicalDraft();
+  const initialDraft = canonicalDraft({reviewStatus:'submitted'});
   const unauthorizedDb = new FakeDb({
     'studioAccess/author-1': { active: true, role: 'author' },
     'contentDrafts/draft-1': initialDraft,
@@ -1169,7 +1169,7 @@ test('preview is authoritative and archiving cannot orphan a live article', asyn
   assert.equal([...previewDb.records.values()].some((value) => value?.snapshotSha256 === preview.snapshotSha256), true);
 
   const publishedDb = new FakeDb({
-    'studioAccess/publisher-1': { active: true, role: 'publisher' },
+    'studioAccess/publisher-1': { active: true, role: 'publisher' }, 'studioAccess/admin-1': {active:true,role:'administrator'},
     'contentDrafts/draft-1': draft({ publicationStatus: 'published' }),
     'contentPublicationIndex/draft-1': { state: 'published', slug: 'example-article', releaseId: 'release-1' },
   });
@@ -1178,24 +1178,24 @@ test('preview is authoritative and archiving cannot orphan a live article', asyn
       db: publishedDb,
       draftId: 'draft-1',
       expectedUpdatedAt: draft().updatedAt,
-      publisherUid: 'publisher-1',
+      publisherUid: 'admin-1',
     }),
     /Unpublish this article/,
   );
   assert.equal(publishedDb.records.get('contentDrafts/draft-1').archivedAt, undefined);
 
-  const editableRecord = canonicalDraft();
+  const editableRecord = canonicalDraft({ownerUid:'admin-1'});
   const draftDb = new FakeDb({
     'studioAccess/author-1': { active: true, role: 'author' },
-    'studioAccess/publisher-1': { active: true, role: 'publisher' },
+    'studioAccess/publisher-1': { active: true, role: 'publisher' }, 'studioAccess/admin-1': {active:true,role:'administrator'},
     'contentDrafts/draft-1': editableRecord,
   });
-  const preArchivePreview = await previewCurrent({ db: draftDb, record: editableRecord, publisherUid: 'publisher-1' });
+  const preArchivePreview = await previewCurrent({ db: draftDb, record: editableRecord, publisherUid: 'admin-1' });
   const archived = await archiveDraft({
     db: draftDb,
     draftId: 'draft-1',
     expectedUpdatedAt: editableRecord.updatedAt,
-    publisherUid: 'author-1',
+    publisherUid: 'admin-1',
     now: new Date('2026-08-26T16:30:00.000Z'),
   });
   assert.equal(draftDb.records.get('contentDrafts/draft-1').archivedAt, archived.archivedAt);
@@ -1209,7 +1209,7 @@ test('preview is authoritative and archiving cannot orphan a live article', asyn
       expectedContentSha256: editableRecord.contentSha256,
       previewReceiptId: preArchivePreview.receiptId,
       idempotencyKey: 'request-archived-001',
-      publisherUid: 'publisher-1',
+      publisherUid: 'admin-1',
       origin: 'https://journal.example',
       articleTemplate: articleTemplateV1,
     }),
@@ -1221,7 +1221,7 @@ test('preview is authoritative and archiving cannot orphan a live article', asyn
     db: draftDb,
     draftId: 'draft-1',
     expectedUpdatedAt: archived.archivedAt,
-    publisherUid: 'publisher-1',
+    publisherUid: 'admin-1',
     now: new Date('2026-08-26T18:00:00.000Z'),
   });
   assert.equal(restored.updatedAt, '2026-08-26T18:00:00.000Z');
@@ -1242,7 +1242,7 @@ test('published discovery renderers escape content and use the configured canoni
   assert.match(rows, /Consulting &amp; &lt;AI&gt;/);
   assert.equal(rows.includes('<notes>'), false);
   const sitemap = appendPublishedUrlsToSitemap('<urlset></urlset>', articles, 'https://journal.example');
-  assert.match(sitemap, /<loc>https:\/\/journal.example\/example-article<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/journal.example\/stories\/example-article<\/loc>/);
 });
 
 test('rendered page receives escaped metadata, safe body and the public canonical URL', () => {
@@ -1253,7 +1253,7 @@ test('rendered page receives escaped metadata, safe body and the public canonica
     liveUrl: 'https://attacker.example/example-article',
   }, 'https://journal.example');
   assert.match(html, /<title>Consulting &amp; AI<\/title>/);
-  assert.match(html, /href="https:\/\/journal.example\/example-article"/);
+  assert.match(html, /href="https:\/\/journal.example\/stories\/example-article"/);
   assert.match(html, /<main><p>Useful article\.<\/p><\/main>/);
   assert.equal(html.includes('@@BLOG_'), false);
 });

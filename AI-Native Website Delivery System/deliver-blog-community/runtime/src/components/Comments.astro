@@ -19,7 +19,9 @@ const { articleSlug } = Astro.props;
   <div class="comments-notice" role="status" aria-live="polite" data-comments-notice hidden></div>
 
   <div class="comments-account">
-    <div data-comments-signed-out>
+    <p data-comments-auth-state role="status">Checking your account…</p>
+
+    <div data-comments-signed-out hidden>
       <p>Sign in with Google to comment or reply.</p>
       <button class="comments-button" type="button" data-comments-signin>Sign in to comment</button>
     </div>

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
+import { contentAssetIds, resolveStoredDraftContent } from './studio-content-document.mjs';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_IMAGE_EDGE = 10_000;
@@ -183,7 +184,8 @@ const assertDraftEditor = (access, draft, uid) => {
     fail('Author, Publisher or Administrator access is required.', 403);
   }
   if (!draft) fail('Save the cloud draft before adding an image.', 409);
-  if (access.role === 'author' && draft.ownerUid !== uid) fail('Authors can add images only to drafts they own.', 403);
+  if (draft.ownerUid !== uid) fail('You can add images only to articles you own.', 403);
+  if (draft.reviewStatus === 'submitted') fail('Withdraw this submission before adding images.', 409);
   if (draft.archivedAt) fail('Restore this draft before adding images.', 409);
   if (draft.format !== 'tiptap-json') fail('Convert this draft before adding images.', 409);
 };
@@ -307,7 +309,14 @@ export const resolveStudioContentAsset = async ({ db, bucket, assetId, user }) =
       readDocument(db.collection('studioAccess').doc(user.uid)),
       readDocument(db.collection('contentDrafts').doc(asset.draftId)),
     ]);
-    assertDraftEditor(access, draft, user.uid);
+    if (!access?.active || !['author', 'publisher', 'administrator'].includes(access.role)
+      || !draft || draft.archivedAt || (draft.ownerUid !== user.uid
+        && !(['publisher', 'administrator'].includes(access.role) && draft.reviewStatus === 'submitted'))) {
+      fail('This private image is unavailable.', 403);
+    }
+    if (draft.ownerUid !== user.uid && !contentAssetIds(resolveStoredDraftContent(draft).document).includes(assetId)) {
+      fail('This image is not part of the submitted revision.', 403);
+    }
   }
   return {
     asset,

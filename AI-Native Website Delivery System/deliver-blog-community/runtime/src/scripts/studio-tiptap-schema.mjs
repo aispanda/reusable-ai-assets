@@ -1,3 +1,4 @@
+import { validArticleLayout } from './article-layouts.mjs';
 import { Node, mergeAttributes } from '@tiptap/core';
 import Link from '@tiptap/extension-link';
 import StarterKit from '@tiptap/starter-kit';
@@ -8,13 +9,20 @@ export const STUDIO_SCHEMA_VERSION = 1;
 export const STUDIO_REGISTRY_VERSION = 'ai-91-v1';
 export const STUDIO_MEDIA_SCHEMA_VERSION = 2;
 export const STUDIO_MEDIA_REGISTRY_VERSION = 'blog-community-media-v2';
+export const STUDIO_LAYOUT_SCHEMA_VERSION = 3;
+export const STUDIO_LAYOUT_REGISTRY_VERSION = 'sanatanavoice-article-layouts-v1';
 export const isSupportedStudioVersion = ({ schemaVersion, registryVersion }) =>
   schemaVersion === STUDIO_SCHEMA_VERSION && registryVersion === STUDIO_REGISTRY_VERSION
-  || schemaVersion === STUDIO_MEDIA_SCHEMA_VERSION && registryVersion === STUDIO_MEDIA_REGISTRY_VERSION;
+  || schemaVersion === STUDIO_MEDIA_SCHEMA_VERSION && registryVersion === STUDIO_MEDIA_REGISTRY_VERSION
+  || schemaVersion === STUDIO_LAYOUT_SCHEMA_VERSION && registryVersion === STUDIO_LAYOUT_REGISTRY_VERSION;
 
 // A normal v1 edit keeps its version. New-only media explicitly selects v2 on save;
 // readers never stamp a new version onto an existing document or its hash.
-export function studioContentVersion(content) {
+export function studioContentVersion(content, layout) {
+  if (layout !== undefined) {
+    if (!validArticleLayout(layout)) throw new Error('Choose a supported article layout.');
+    return { schemaVersion: STUDIO_LAYOUT_SCHEMA_VERSION, registryVersion: STUDIO_LAYOUT_REGISTRY_VERSION };
+  }
   const pending = [content];
   let visited = 0;
   while (pending.length) {

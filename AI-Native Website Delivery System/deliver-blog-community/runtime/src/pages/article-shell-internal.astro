@@ -1,10 +1,11 @@
 ---
+import '@/styles/article-layouts.css';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Comments from '@/components/Comments.astro';
 ---
 
 <BaseLayout title="@@BLOG_ARTICLE_TITLE@@" description="@@BLOG_ARTICLE_DESCRIPTION@@" canonicalHref="@@BLOG_ARTICLE_URL@@">
-  <article class="insight-article">
+  <article class="insight-article" data-article-layout="@@BLOG_ARTICLE_LAYOUT@@">
     <div class="shell insight-layout">
       <div class="insight-main">
         <header class="insight-hero">
@@ -12,13 +13,15 @@ import Comments from '@/components/Comments.astro';
             <p class="eyebrow">Insight · @@BLOG_ARTICLE_READ_TIME@@</p>
             <a
               class="insight-edit"
-              href="/studio?draft=@@BLOG_ARTICLE_DRAFT_ID@@"
+              href="/my-articles"
               data-local-edit
               hidden
-            >Edit article</a>
-            <a class="insight-back" href="/">← All articles</a>
+            >My articles</a>
+            <a class="insight-back" href="/stories">← All articles</a>
           </div>
           <h1>@@BLOG_ARTICLE_TITLE@@</h1>
+          <p data-article-author>@@BLOG_ARTICLE_AUTHOR@@</p>
+          <a data-article-original href="@@BLOG_ARTICLE_ORIGINAL_URL@@">@@BLOG_ARTICLE_ORIGINAL_TITLE@@</a>
           <p class="lede">@@BLOG_ARTICLE_DESCRIPTION@@</p>
         </header>
 
@@ -26,6 +29,7 @@ import Comments from '@/components/Comments.astro';
           <div class="insight-prose">@@BLOG_ARTICLE_BODY@@</div>
         </section>
 
+        <aside class="layout-study-prompts" aria-label="Questions for reflection"><h2>Pause &amp; reflect</h2><p>What happens in the story?</p><p>Which meaning comes from the source, and which is interpretation?</p><p>What question will you carry with you?</p></aside>
         <!--@@BLOG_INTERACTIVE_START@@-->
         <Comments articleSlug="@@BLOG_ARTICLE_SLUG@@" />
         <!--@@BLOG_INTERACTIVE_END@@-->
@@ -58,6 +62,7 @@ import Comments from '@/components/Comments.astro';
 </script>
 
 <style>
+  [data-article-author]:empty, [data-article-original][href=""] { display: none; }
   .insight-layout { grid-template-columns: minmax(0, 1fr); }
   .insight-main { width: min(900px, 100%); margin-inline: auto; }
   .insight-edit {

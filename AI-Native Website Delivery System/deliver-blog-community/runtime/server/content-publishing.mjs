@@ -1,4 +1,6 @@
 import sanitizeHtml from 'sanitize-html';
+import { assertCollectionTags } from './collection-management.mjs';
+import { articleLayout, validArticleLayout } from '../src/scripts/article-layouts.mjs';
 import { createHash } from 'node:crypto';
 import { mountYouTubePlayers } from '../src/scripts/studio-youtube.mjs';
 
@@ -35,8 +37,14 @@ const PUBLICATION_VERSION_V2 = Object.freeze({
   sanitizerVersion: 'sanitize-html-2.17.7-blog-media-v2',
   templateVersion: 'article-shell-blog-media-v2',
 });
-export const SUPPORTED_PUBLICATION_VERSION_TUPLES = Object.freeze([PUBLICATION_VERSION_V1, PUBLICATION_VERSION_V2]);
-const ACTIVE_PUBLICATION_VERSION = PUBLICATION_VERSION_V2;
+const PUBLICATION_VERSION_LAYOUTS = Object.freeze({
+  snapshotVersion: 'sanatanavoice-publication-layouts-v1',
+  rendererVersion: 'tiptap-html-3.30.3-sv-layouts-v1',
+  sanitizerVersion: 'sanitize-html-2.17.7-blog-media-v2',
+  templateVersion: 'article-shell-sv-layouts-v1',
+});
+export const SUPPORTED_PUBLICATION_VERSION_TUPLES = Object.freeze([PUBLICATION_VERSION_V1, PUBLICATION_VERSION_V2, PUBLICATION_VERSION_LAYOUTS]);
+const ACTIVE_PUBLICATION_VERSION = PUBLICATION_VERSION_LAYOUTS;
 export const PUBLICATION_SNAPSHOT_VERSION = ACTIVE_PUBLICATION_VERSION.snapshotVersion;
 export const PUBLICATION_RENDERER_VERSION = ACTIVE_PUBLICATION_VERSION.rendererVersion;
 export const PUBLICATION_SANITIZER_VERSION = ACTIVE_PUBLICATION_VERSION.sanitizerVersion;
@@ -135,7 +143,7 @@ const normalizeTags = (value) => String(value ?? '')
 
 const CANONICAL_SAVE_KEYS = new Set([
   'title', 'excerpt', 'slug', 'tags',
-  'format', 'schemaVersion', 'registryVersion', 'content',
+  'format', 'schemaVersion', 'registryVersion', 'content', 'layout',
 ]);
 
 const CONTENT_MUTATION_REQUEST_KEYS = {
@@ -159,6 +167,7 @@ const normalizeCanonicalSaveInput = (input) => {
     if (!CANONICAL_SAVE_KEYS.has(key)) fail(`Draft field ${key} is server-owned and cannot be supplied.`);
   }
   for (const key of CANONICAL_SAVE_KEYS) {
+    if (key === 'layout' && input.schemaVersion !== 3) continue;
     if (!(key in input)) fail(`Draft field ${key} is required.`);
   }
   const title = typeof input.title === 'string' ? input.title.trim() : '';
@@ -169,12 +178,14 @@ const normalizeCanonicalSaveInput = (input) => {
   if (excerpt.length > EXCERPT_LIMIT) fail('The article excerpt is too long.');
   if (tags.length > TAGS_LIMIT) fail('The article tags are too long.');
   if (slug.length > SLUG_LIMIT || (slug && normalizeSlug(slug) !== slug)) fail('Choose a valid URL slug.');
+  if (input.schemaVersion !== 3 && input.layout !== undefined) fail('Layout requires the layout-aware schema.');
   let document;
   try {
     document = assertContentDocument({
       format: input.format,
       schemaVersion: input.schemaVersion,
       registryVersion: input.registryVersion,
+      ...(input.schemaVersion === 3 ? { layout: input.layout } : {}),
       content: input.content,
     });
   } catch (error) {
@@ -222,6 +233,7 @@ const validateCanonicalDraftForPublication = (draft) => {
     excerpt,
     slug,
     tags: normalizeTags(tagsText),
+    layout: articleLayout(sourceDocument.layout),
     sourceUpdatedAt: draft.updatedAt,
     sourceRevision: draft.revision,
     sourceDocument,
@@ -240,21 +252,40 @@ const assertExpectedRevision = (draft, expectedUpdatedAt) => {
   }
 };
 
+// Administrators inherit Publisher editorial capabilities. Administrative-only
+// actions remain guarded in their own modules.
+const hasPublisherRights = (access) => access?.active === true
+  && ['administrator', 'publisher'].includes(access.role);
+
 const assertPublisher = (access) => {
-  if (!access || access.active !== true || !['administrator', 'publisher'].includes(access.role)) {
+  if (!hasPublisherRights(access)) {
     fail('Publisher or Administrator access is required.', 403);
   }
 };
 
+const assertAdministrator = (access) => {
+  if (!(access?.active === true && access.role === 'administrator')) {
+    fail('Administrator access is required.', 403);
+  }
+};
+
 const assertEditor = (access) => {
-  if (!access || access.active !== true || !['administrator', 'publisher', 'author'].includes(access.role)) {
+  if (!(hasPublisherRights(access) || (access?.active === true && access.role === 'author'))) {
     fail('Author, Publisher or Administrator access is required.', 403);
   }
 };
 
 const assertDraftEditor = (access, draft, uid) => {
   assertEditor(access);
-  if (access.role === 'author' && draft.ownerUid !== uid) fail('Authors can edit only drafts they own.', 403);
+  if (draft.ownerUid !== uid) fail('You can edit only articles you own.', 403);
+  if (draft.reviewStatus === 'submitted') fail('Withdraw this submission before editing it.', 409);
+};
+
+const assertDraftReader = (access, draft, uid) => {
+  assertEditor(access);
+  if (draft.ownerUid !== uid && !(hasPublisherRights(access) && draft.reviewStatus === 'submitted')) {
+    fail('This private draft is unavailable.', 403);
+  }
 };
 
 const transactionDocument = async (transaction, reference) => {
@@ -321,10 +352,11 @@ const LEGACY_STORED_KEYS = new Set([
   'publicationLiveUrl', 'archivedAt', 'archivedBy',
 ]);
 const CANONICAL_STORED_KEYS = new Set([
-  'title', 'format', 'schemaVersion', 'registryVersion', 'content', 'contentSha256',
+  'title', 'format', 'schemaVersion', 'registryVersion', 'content', 'contentSha256', 'layout',
   'excerpt', 'slug', 'tags', 'publicationStatus', 'updatedAt', 'revision', 'revisions',
   'ownerUid', 'ownerEmail', 'publicationReleaseId', 'publicationLiveUrl',
   'legacyHtmlOriginal', 'legacyHtmlSha256', 'migrationReport', 'archivedAt', 'archivedBy',
+  'reviewStatus', 'reviewHistory', 'reviewFeedback', 'submittedRevision', 'submittedContentSha256', 'derivedFrom',
 ]);
 
 const assertStoredDraftEnvelope = (draft, { canonical }) => {
@@ -487,6 +519,7 @@ export const saveCanonicalDraft = async ({
       if (!current && !String(publisherEmail ?? '').trim()) {
         fail('A verified account email is required to create a draft.', 403);
       }
+      await assertCollectionTags({ db, transaction, tags: input.tags, existingTags: current?.tags });
       await assertDraftAssetsReady({ db, transaction, draftId, assetIds: requestedAssetIds });
 
       const canonical = canonicalContentFields(input.document);
@@ -519,6 +552,10 @@ export const saveCanonicalDraft = async ({
         publicationReleaseId: serverOwned.publicationReleaseId,
         publicationLiveUrl: serverOwned.publicationLiveUrl,
         ...preservedMigrationFields(current),
+        reviewStatus: current?.reviewStatus ?? 'draft',
+        reviewHistory: current?.reviewHistory ?? [],
+        reviewFeedback: current?.reviewFeedback ?? '',
+        ...(current?.derivedFrom ? { derivedFrom: current.derivedFrom } : {}),
       };
       if (current) transaction.set(draftRef, stored);
       else transaction.create(draftRef, stored);
@@ -641,6 +678,7 @@ const publicationSnapshotHashInput = (snapshot) => ({
   excerpt: snapshot.excerpt,
   slug: snapshot.slug,
   tags: snapshot.tags,
+  ...(snapshot.snapshotVersion === PUBLICATION_VERSION_LAYOUTS.snapshotVersion ? { layout: snapshot.layout } : {}),
   readMinutes: snapshot.readMinutes,
   sourceUpdatedAt: snapshot.sourceUpdatedAt,
   sourceRevision: snapshot.sourceRevision,
@@ -650,6 +688,8 @@ const publicationSnapshotHashInput = (snapshot) => ({
   bodyHtmlSha256: snapshot.bodyHtmlSha256,
   renderedPageSha256: snapshot.renderedPageSha256,
   assetIds: snapshot.assetIds,
+  ...(snapshot.authorName ? { authorName: snapshot.authorName } : {}),
+  ...(snapshot.derivedFrom ? { derivedFrom: snapshot.derivedFrom } : {}),
 });
 
 export const buildPublicationSnapshot = ({ draft, draftId, articleTemplate, origin }) => {
@@ -657,6 +697,8 @@ export const buildPublicationSnapshot = ({ draft, draftId, articleTemplate, orig
     fail('The governed article template is unavailable.', 503);
   }
   const article = validateCanonicalDraftForPublication(draft);
+  article.authorName = draft.authorName || 'Contributor';
+  if (draft.derivedFrom) article.derivedFrom = draft.derivedFrom;
   if (!Number.isInteger(article.sourceRevision) || article.sourceRevision < 1) {
     fail('The cloud draft has an invalid revision number.', 409);
   }
@@ -673,9 +715,12 @@ export const buildPublicationSnapshot = ({ draft, draftId, articleTemplate, orig
     templateSha256,
     draftId,
     title: article.title,
+    authorName: article.authorName,
+    ...(article.derivedFrom ? { derivedFrom: article.derivedFrom } : {}),
     excerpt: article.excerpt,
     slug: article.slug,
     tags: article.tags,
+    layout: article.layout,
     readMinutes: article.readMinutes,
     sourceUpdatedAt: article.sourceUpdatedAt,
     sourceRevision: article.sourceRevision,
@@ -726,10 +771,11 @@ export const previewDraft = async ({
     transactionDocument(transaction, draftRef),
   ]);
   if (!draft) fail('The cloud draft is unavailable.', 404);
-  assertDraftEditor(access, draft, publisherUid);
+  assertDraftReader(access, draft, publisherUid);
   if (draft.archivedAt) fail('Restore this draft before previewing it.', 409);
   assertPublicationRevision({ draft, expectedUpdatedAt, expectedRevision, expectedContentSha256 });
-  const snapshot = buildPublicationSnapshot({ draft, draftId, articleTemplate, origin });
+  const profile = await transactionDocument(transaction, db.collection('userProfiles').doc(draft.ownerUid));
+  const snapshot = buildPublicationSnapshot({ draft: { ...draft, authorName: String(profile?.displayName || 'Contributor').slice(0, 150) }, draftId, articleTemplate, origin });
   await assertDraftAssetsReady({ db, transaction, draftId, assetIds: snapshot.assetIds });
   const existingPublic = await transactionDocument(transaction, db.collection('publishedContent').doc(snapshot.slug));
   if (existingPublic && existingPublic.draftId !== draftId) fail('Another article already uses this URL slug.', 409);
@@ -820,8 +866,14 @@ export const publishDraft = async ({
     }
     if (!draft) fail('The cloud draft is unavailable.', 404);
     if (draft.archivedAt) fail('Archived drafts must be restored before publication.', 409);
+    assertDraftReader(access, draft, publisherUid);
+    if (draft.ownerUid !== publisherUid && (draft.submittedRevision !== draft.revision || draft.submittedContentSha256 !== draft.contentSha256)) {
+      fail('This submission changed. Ask the author to submit it again.', 409);
+    }
     assertPublicationRevision({ draft, expectedUpdatedAt, expectedRevision, expectedContentSha256 });
-    const snapshot = buildPublicationSnapshot({ draft, draftId, articleTemplate, origin });
+    await assertCollectionTags({ db, transaction, tags: draft.tags });
+    const profile = await transactionDocument(transaction, db.collection('userProfiles').doc(draft.ownerUid));
+    const snapshot = buildPublicationSnapshot({ draft: { ...draft, authorName: String(profile?.displayName || 'Contributor').slice(0, 150) }, draftId, articleTemplate, origin });
     await assertDraftAssetsReady({ db, transaction, draftId, assetIds: snapshot.assetIds });
     if (
       !receipt
@@ -852,16 +904,18 @@ export const publishDraft = async ({
       if (previousPublic && previousPublic.draftId !== draftId) previousPublicRef = null;
     }
 
-    const liveUrl = new URL(`/${snapshot.slug}`, origin).toString();
+    const liveUrl = new URL(`/stories/${snapshot.slug}`, origin).toString();
     const firstPublishedAt = previousIndex?.firstPublishedAt ?? publishedAt;
     const manifestBase = {
       id: releaseRef.id,
       releaseId: releaseRef.id,
       draftId,
       title: snapshot.title,
+      authorName: snapshot.authorName,
       excerpt: snapshot.excerpt,
       slug: snapshot.slug,
       tags: snapshot.tags,
+      layout: snapshot.layout,
       readMinutes: snapshot.readMinutes,
       sourceUpdatedAt: snapshot.sourceUpdatedAt,
       sourceRevision: snapshot.sourceRevision,
@@ -885,6 +939,8 @@ export const publishDraft = async ({
       publishedAt,
       firstPublishedAt,
       liveUrl,
+      ownerUid: draft.ownerUid,
+      ...(draft.derivedFrom ? { derivedFrom: draft.derivedFrom } : {}),
     };
     const release = { ...manifestBase, manifestSha256: sha256(stableJson(manifestBase)) };
 
@@ -957,6 +1013,7 @@ export const publishDraft = async ({
       publicationReleaseId: releaseRef.id,
       publicationLiveUrl: liveUrl,
       updatedAt: publishedAt,
+      reviewStatus: 'published',
     });
     transaction.create(requestRef, {
       draftId,
@@ -999,8 +1056,9 @@ export const unpublishDraft = async ({ db, draftId, expectedUpdatedAt, publisher
       transactionDocument(transaction, draftRef),
       transactionDocument(transaction, indexRef),
     ]);
-    assertPublisher(access);
     if (!draft) fail('The cloud draft is unavailable.', 404);
+    assertEditor(access);
+    if (access.role === 'author' && draft.ownerUid !== publisherUid) fail('You can unpublish only your own articles.', 403);
     assertExpectedRevision(draft, expectedUpdatedAt);
     if (!index?.slug || index.state !== 'published') fail('This article is not currently published.', 409);
 
@@ -1020,6 +1078,9 @@ export const unpublishDraft = async ({ db, draftId, expectedUpdatedAt, publisher
     }
     transaction.update(draftRef, {
       publicationStatus: 'unpublished',
+      reviewStatus: 'draft',
+      submittedRevision: null,
+      submittedContentSha256: null,
       publicationReleaseId: index.releaseId,
       publicationLiveUrl: currentPublic?.liveUrl ?? '',
       updatedAt: occurredAt,
@@ -1052,13 +1113,14 @@ export const archiveDraft = async ({ db, draftId, expectedUpdatedAt, publisherUi
       transactionDocument(transaction, indexRef),
     ]);
     if (!draft) fail('The cloud draft is unavailable.', 404);
-    assertDraftEditor(access, draft, publisherUid);
+    assertAdministrator(access);
+    if (draft.reviewStatus === 'submitted') fail('Return or withdraw this submitted article before moving it to trash.', 409);
     assertExpectedRevision(draft, expectedUpdatedAt);
     if (index?.state === 'published' || ['published', 'published-with-changes'].includes(draft.publicationStatus)) {
       fail('Unpublish this article before moving its draft to trash.', 409);
     }
 
-    transaction.update(draftRef, { archivedAt: occurredAt, updatedAt: occurredAt });
+    transaction.update(draftRef, { archivedAt: occurredAt, archivedBy: publisherUid, updatedAt: occurredAt });
     transaction.create(auditRef, {
       action: 'archive',
       actorUid: publisherUid,
@@ -1087,7 +1149,7 @@ export const restoreDraft = async ({ db, draftId, expectedUpdatedAt, publisherUi
         transactionDocument(transaction, indexRef),
       ]);
       if (!draft) fail('The archived cloud draft is unavailable.', 404);
-      assertDraftEditor(access, draft, publisherUid);
+      assertAdministrator(access);
       assertExpectedRevision(draft, expectedUpdatedAt);
       if (!draft.archivedAt) fail('This draft is not archived.', 409);
       if (index?.state === 'published') fail('A live article cannot be restored from archive.', 409);
@@ -1130,6 +1192,7 @@ const PUBLICATION_READERS = new Map([
 // Both formats store frozen strings; neither reader re-renders or sanitizes old
 // bytes with the current writer. Keep the v1 tuple and reader unchanged.
 PUBLICATION_READERS.set(publicationVersionKey(PUBLICATION_VERSION_V2), PUBLICATION_READERS.get(publicationVersionKey(PUBLICATION_VERSION_V1)));
+PUBLICATION_READERS.set(publicationVersionKey(PUBLICATION_VERSION_LAYOUTS), PUBLICATION_READERS.get(publicationVersionKey(PUBLICATION_VERSION_V1)));
 
 export const supportsPublicationVersion = (value) => PUBLICATION_READERS.has(publicationVersionKey(value));
 
@@ -1140,6 +1203,7 @@ const validReleaseManifest = (manifest, expectedSlug) => {
     !/^[a-f0-9]{64}$/.test(String(manifestSha256 ?? ''))
     || sha256(stableJson(manifestBase)) !== manifestSha256
     || !supportsPublicationVersion(manifest)
+    || (manifest.snapshotVersion === PUBLICATION_VERSION_LAYOUTS.snapshotVersion && !validArticleLayout(manifest.layout))
     || manifest.slug !== expectedSlug
     || normalizeSlug(manifest.slug) !== manifest.slug
     || reservedSlugs.has(manifest.slug)
@@ -1218,14 +1282,14 @@ export const listPublishedArticles = async (db, limit = 100) => {
 };
 
 export const renderPublishedInsightRows = (articles) => articles.map((article) => {
-  const eyebrow = Array.isArray(article.tags) && article.tags[0] ? article.tags[0] : 'Insight';
+  const eyebrow = (Array.isArray(article.tags) && article.tags.find(tag => !tag.startsWith('collection:'))) || 'Insight';
   const readMinutes = Math.max(1, Number(article.readMinutes) || 1);
-  return `<a class="insight-row" href="/${escapeHtml(article.slug)}"><small>${escapeHtml(eyebrow)}</small><div><h3>${escapeHtml(article.title)}</h3><p>${escapeHtml(article.excerpt ?? '')}</p></div><span>${readMinutes} min read →</span></a>`;
+  return `<a class="insight-row" href="/stories/${escapeHtml(article.slug)}"><small>${escapeHtml(eyebrow)}</small><div><h3>${escapeHtml(article.title)}</h3><p>${escapeHtml(article.excerpt ?? '')}</p></div><span>${readMinutes} min read →</span></a>`;
 }).join('');
 
 export const appendPublishedUrlsToSitemap = (xml, articles, origin) => {
   const urls = articles.map((article) => {
-    const location = new URL(`/${article.slug}`, origin).toString();
+    const location = new URL(`/stories/${article.slug}`, origin).toString();
     const lastModified = validIsoDate(article.publishedAt) ? `<lastmod>${escapeHtml(article.publishedAt)}</lastmod>` : '';
     return `<url><loc>${escapeHtml(location)}</loc>${lastModified}</url>`;
   }).join('');
@@ -1233,9 +1297,13 @@ export const appendPublishedUrlsToSitemap = (xml, articles, origin) => {
 };
 
 export const renderPublishedArticle = (template, article, origin) => {
-  const liveUrl = new URL(`/${article.slug}`, origin).toString();
+  const liveUrl = new URL(`/stories/${article.slug}`, origin).toString();
   const replacements = new Map([
+    ['@@BLOG_ARTICLE_AUTHOR@@', escapeHtml(article.authorName || '')],
+    ['@@BLOG_ARTICLE_ORIGINAL_URL@@', article.derivedFrom ? escapeHtml(new URL(`/stories/${article.derivedFrom.slug}`, origin).href) : ''],
+    ['@@BLOG_ARTICLE_ORIGINAL_TITLE@@', escapeHtml(article.derivedFrom?.title || '')],
     ['@@BLOG_ARTICLE_TITLE@@', escapeHtml(article.title)],
+    ['@@BLOG_ARTICLE_LAYOUT@@', escapeHtml(articleLayout(article.layout) ?? 'classic-reading')],
     ['@@BLOG_ARTICLE_DESCRIPTION@@', escapeHtml(article.excerpt)],
     ['@@BLOG_ARTICLE_SLUG@@', escapeHtml(article.slug)],
     ['@@BLOG_ARTICLE_DRAFT_ID@@', escapeHtml(article.draftId)],
@@ -1249,7 +1317,7 @@ export const renderPublishedArticle = (template, article, origin) => {
   return output;
 };
 
-const PLAYER_SOURCE = `(${mountYouTubePlayers.toString()})(document);`;
+const PLAYER_SOURCE = `(${mountYouTubePlayers.toString()})(document);`.replace(/\r\n?/g, '\n');
 const appendPlayerScript = html => {
   const script = `<script>${PLAYER_SOURCE}</script>`;
   return html.includes('</body>') ? html.replace('</body>', script + '</body>') : html + script;

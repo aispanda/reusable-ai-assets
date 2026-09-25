@@ -1,6 +1,6 @@
 {
   "name": "@reusable/blog-community-runtime",
-  "version": "0.2.0-rc.7",
+  "version": "0.2.0-rc.8",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
@@ -11,12 +11,13 @@
   "scripts": {
     "build": "astro build",
     "start": "node --env-file-if-exists=.env server/start.mjs",
-    "test": "node --test tests/content-publishing.test.mjs tests/runtime-config.test.mjs tests/studio-content-document.test.mjs tests/studio-content-assets.test.mjs tests/studio-editor-ui.test.mjs tests/studio-youtube.test.mjs tests/runtime-startup.test.mjs tests/site-profile.test.mjs tests/collection-input.test.mjs tests/collection-regressions.test.mjs",
+    "test": "node --test tests/content-publishing.test.mjs tests/runtime-config.test.mjs tests/studio-content-document.test.mjs tests/studio-content-assets.test.mjs tests/studio-editor-ui.test.mjs tests/studio-youtube.test.mjs tests/runtime-startup.test.mjs tests/site-profile.test.mjs tests/collection-input.test.mjs tests/collection-regressions.test.mjs tests/public-collections.test.mjs tests/sign-in-navigation.test.mjs",
     "test:media": "node --test tests/studio-media-browser.test.mjs tests/studio-private-preview-images.test.mjs",
     "test:rules": "firebase emulators:exec --only firestore --project demo-blog-community \"node --test tests/community-rules.test.mjs tests/firestore-rules.test.mjs\"",
     "test:scenarios": "firebase emulators:exec --only auth,firestore --project demo-blog-community \"node tests/scenarios.test.mjs\"",
     "test:integration": "firebase emulators:exec --only auth,firestore --project demo-blog-community \"node --test tests/http-lifecycle.test.mjs\"",
-    "test:collections": "firebase emulators:exec --only auth,firestore --project demo-blog-collections \"node --test tests/collection-http.test.mjs\""
+    "test:collections": "firebase emulators:exec --only auth,firestore --project demo-blog-collections \"node --test tests/collection-http.test.mjs\"",
+    "test:editorial": "firebase emulators:exec --only firestore --project demo-blog-community \"node --test tests/editorial-workflow.test.mjs\""
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.3",

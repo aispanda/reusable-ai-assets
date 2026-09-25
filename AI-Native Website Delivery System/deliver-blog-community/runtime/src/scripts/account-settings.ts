@@ -17,6 +17,8 @@ import {
   type MemberProfileChoices,
 } from '../data/member-profile';
 import { getFirebaseClientApp, isFirebaseConfigured } from './firebase-client';
+import { accessRequest, showRoleRequestPanel } from './studio-firebase';
+import { createSignInNavigation } from './sign-in-navigation.mjs';
 
 type MemberRole = 'administrator' | 'publisher' | 'author' | 'commenter' | 'viewer';
 type MemberProfile = MemberProfileChoices & {
@@ -34,7 +36,7 @@ const memberSessionKey = 'blog-member-session-v1';
 const editorialSessionKey = 'blog-studio-authorized-session-v1';
 
 const find = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector);
-const roleLabel = (role: MemberRole) => role === 'viewer' ? 'View only' : role[0].toUpperCase() + role.slice(1);
+const roleLabel = (role: MemberRole) => role === 'viewer' ? 'View only' : role === 'commenter' ? 'Commentator' : role[0].toUpperCase() + role.slice(1);
 
 const rememberMemberSession = (user: User, role: MemberRole) => {
   const session = JSON.stringify({ uid: user.uid, role, expiresAt: Date.now() + 60 * 60 * 1000 });
@@ -97,14 +99,18 @@ export const initializeAccountSettings = async () => {
   await setPersistence(auth, browserLocalPersistence);
 
   const provider = new GoogleAuthProvider();
+  const signInNavigation = createSignInNavigation((path: string) => window.location.assign(path));
   provider.setCustomParameters({ prompt: 'select_account' });
 
   signInButton?.addEventListener('click', async () => {
+    signInNavigation.begin();
     signInButton.disabled = true;
     if (status) status.textContent = 'Choose your Google account to continue.';
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      signInNavigation.authenticated(result.user.uid);
     } catch (error) {
+      signInNavigation.cancel();
       signInButton.disabled = false;
       if (status) status.textContent = signInErrorMessage(error);
     }
@@ -160,6 +166,7 @@ export const initializeAccountSettings = async () => {
       return;
     }
     if (!user.email || !user.emailVerified) {
+      signInNavigation.cancel();
       if (loading) loading.hidden = true;
       if (signedOut) signedOut.hidden = false;
       if (status) status.textContent = 'Use a Google account with a verified email address.';
@@ -170,17 +177,31 @@ export const initializeAccountSettings = async () => {
       const accessRef = doc(db, 'studioAccess', user.uid);
       let access = await getDoc(accessRef);
       if (!access.exists()) {
-        const invite = await getDoc(doc(db, 'studioInvites', user.email));
-        const invitedRole = invite.exists() ? invite.data().role : undefined;
-        const initialRole = invite.exists() && invite.data().active === true && roles.has(invitedRole)
-          ? invitedRole as MemberRole
-          : 'commenter';
-        await setDoc(accessRef, { active: true, role: initialRole, email: user.email, claimedAt: new Date().toISOString() });
+        await setDoc(accessRef, { active: true, role: 'commenter', email: user.email, claimedAt: new Date().toISOString() });
         access = await getDoc(accessRef);
+      }
+      if (user.providerData.some(provider => provider.providerId === 'google.com')) await accessRequest(user, { action: 'claim-invite' });
+      access = await getDoc(accessRef);
+      if (access.data()?.active !== true) {
+        signInNavigation.cancel();
+        clearMemberSessions();
+        if (name) name.value = user.displayName || '';
+        if (email) email.value = user.email;
+        if (role) role.textContent = 'Inactive';
+        if (studioLink) studioLink.hidden = true;
+        const rolePanel = find<HTMLElement>('[data-role-request-panel]'); if (rolePanel) rolePanel.hidden = true;
+        const message = document.querySelector('.account-heading > div > p:last-child');
+        if (message) message.textContent = 'Your account is inactive. Contact an administrator to restore access.';
+        document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('[data-account-profile-form] input, [data-account-profile-form] select, [data-account-profile-form] button').forEach(control => { control.disabled = true; });
+        if (loading) loading.hidden = true;
+        if (signedOut) signedOut.hidden = true;
+        if (content) content.hidden = false;
+        return;
       }
       const accessRole = access.data()?.role;
       const memberRole: MemberRole = roles.has(accessRole) ? accessRole : 'commenter';
       rememberMemberSession(user, memberRole);
+      const usersLink = find<HTMLAnchorElement>('[data-account-users-link]'); if (usersLink) usersLink.hidden = memberRole !== 'administrator';
 
       const profileRef = doc(db, 'userProfiles', user.uid);
       const profileSnapshot = await getDoc(profileRef);
@@ -209,10 +230,13 @@ export const initializeAccountSettings = async () => {
       if (primaryInterest) primaryInterest.value = currentProfile.primaryInterest;
       if (country) country.value = currentProfile.countryCode;
       if (studioLink) studioLink.hidden = !['administrator', 'publisher', 'author'].includes(memberRole);
+      if (memberRole === 'author' || memberRole === 'commenter' || memberRole === 'viewer') await showRoleRequestPanel(user, memberRole);
       if (loading) loading.hidden = true;
       if (signedOut) signedOut.hidden = true;
       if (content) content.hidden = false;
+      signInNavigation.ready(user.uid);
     } catch (error) {
+      signInNavigation.cancel();
       if (loading) loading.hidden = true;
       if (signedOut) signedOut.hidden = false;
       if (status) status.textContent = error instanceof Error ? error.message : 'Your account could not be loaded.';

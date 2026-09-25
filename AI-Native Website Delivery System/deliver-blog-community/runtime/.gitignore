@@ -10,3 +10,7 @@ dist/
 test-results/
 playwright-report/
 coverage/
+
+.test-config/
+*.local.log
+production-site.json

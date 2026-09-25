@@ -93,9 +93,9 @@ test('AUTH-02: signed-out and unverified identities cannot register or read prot
   }
 });
 
-test('ROLE-01 ROLE-03: each editorial role requires an Admin approval before access changes', async () => {
+test('ROLE-01 ROLE-03: browser role grants are denied even for Admin; server-approved grants are readable', async () => {
   const admin = databaseFor('administrator');
-  for (const role of ['author', 'publisher', 'administrator']) {
+  for (const role of ['author', 'publisher']) {
     const uid = `applicant-${role}`;
     await seed({ [`studioAccess/${uid}`]: access(uid) });
     const applicant = databaseFor(uid);
@@ -109,7 +109,8 @@ test('ROLE-01 ROLE-03: each editorial role requires an Admin approval before acc
     batch.update(doc(admin, 'studioAccess', uid), {
       role, approvedAt: claimedAt, approvedBy: 'administrator',
     });
-    await assertSucceeds(batch.commit());
+    await assertFails(batch.commit());
+    await seed({[`studioAccess/${uid}`]: {...access(uid),role}, [`roleRequests/${uid}`]: {...requestFor(uid,role), status:'approved', reviewedAt:claimedAt,reviewedBy:'administrator'}});
     assert.equal((await getDoc(doc(applicant, 'studioAccess', uid))).data().role, role);
     const reviewed = (await getDoc(doc(applicant, 'roleRequests', uid))).data();
     assert.equal(reviewed.status, 'approved');
@@ -125,9 +126,8 @@ test('ROLE-02: cancellation and denial allow a fresh request without granting pr
   await assertSucceeds(updateDoc(reference, { status: 'cancelled', lastCancelledAt: claimedAt }));
   await assertSucceeds(setDoc(reference, { ...requestFor('commenter', 'publisher'), lastCancelledAt: claimedAt }));
   const admin = databaseFor('administrator');
-  await assertSucceeds(updateDoc(doc(admin, 'roleRequests', 'commenter'), {
-    status: 'denied', reviewedAt: claimedAt, reviewedBy: 'administrator',
-  }));
+  await assertFails(updateDoc(doc(admin, 'roleRequests', 'commenter'), {status:'denied', reviewedAt:claimedAt,reviewedBy:'administrator'}));
+  await seed({'roleRequests/commenter':{...requestFor('commenter','publisher'),status:'denied',reviewedAt:claimedAt,reviewedBy:'administrator',lastCancelledAt:claimedAt}});
   await assertSucceeds(setDoc(reference, { ...requestFor('commenter'), lastCancelledAt: claimedAt }));
   assert.equal((await getDoc(doc(db, 'studioAccess', 'commenter'))).data().role, 'commenter');
 });
@@ -152,7 +152,8 @@ test('ROLE-05: a retained session loses draft/comment rights after current acces
   await seed({ 'contentDrafts/own-draft': { ownerUid: 'author', title: 'Private' } });
   await assertSucceeds(getDoc(doc(author, 'contentDrafts', 'own-draft')));
   await assertSucceeds(createComment(author, 'author', 'before-revocation'));
-  await assertSucceeds(updateDoc(doc(databaseFor('administrator'), 'studioAccess', 'author'), { active: false }));
+  await assertFails(updateDoc(doc(databaseFor('administrator'), 'studioAccess', 'author'), {active:false}));
+  await seed({'studioAccess/author': {...access('author','author'),active:false}});
   await assertFails(getDoc(doc(author, 'contentDrafts', 'own-draft')));
   await assertFails(createComment(author, 'author', 'after-revocation'));
   await assertFails(edit(author, 'before-revocation'));

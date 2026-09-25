@@ -31,11 +31,20 @@ import { primaryInterestOptions, professionalRoleOptions } from '@/data/member-p
           <p>Keep your personal details current and open the tools available to your account.</p>
         </div>
         <div class="account-heading-actions">
-          <a class="button button-secondary" href="/studio" data-account-studio-link hidden>Open Content Studio</a>
+          <a class="button button-secondary" href="/my-articles" data-account-studio-link hidden>My articles</a>
+          <a class="button button-secondary" href="/manage/users" data-account-users-link hidden>Manage users</a>
           <button class="account-text-button" type="button" data-account-signout>Sign out</button>
         </div>
       </header>
 
+      <section class="account-section" data-role-request-panel hidden aria-label="Editorial access">
+        <h2>Apply for editorial access</h2>
+        <p>Signed in as <strong data-role-request-email></strong>. Authors save drafts; Publishers review and publish articles across all collections. Administrator access is invitation only.</p>
+        <label>Requested role <select data-role-request-select><option value="author">Author</option><option value="publisher">Publisher</option></select></label>
+        <button class="button" type="button" data-role-request-submit>Send request</button>
+        <button class="button button-secondary" type="button" data-role-request-cancel hidden>Cancel request</button>
+        <p role="status" aria-live="polite" data-role-request-status></p>
+      </section>
       <section class="account-section" aria-labelledby="personal-information-title">
         <div class="account-section-heading">
           <div>

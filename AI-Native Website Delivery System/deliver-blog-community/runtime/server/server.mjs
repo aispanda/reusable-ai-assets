@@ -1,8 +1,13 @@
+import { renderCollectionsPage } from './public-collections.mjs';
+import { listCollections, manageCollection, articleCollectionIds } from './collection-management.mjs';
+import { transitionReview, listEditorialDrafts, threadMetrics, deriveArticle } from './editorial-workflow.mjs';
+import { manageAccess } from './editorial-access.mjs';
+import { articleLayout } from '../src/scripts/article-layouts.mjs';
 import { createReadStream } from 'node:fs';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { pipeline } from 'node:stream/promises';
-import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
+import { basename, dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   appendPublishedUrlsToSitemap,
@@ -19,19 +24,21 @@ import {
   unpublishDraft,
   withContentFailureAudit,
 } from './content-publishing.mjs';
-import { isInternalArticleShellFile } from './static-routing.mjs';
+import { compatibleVersionedAsset, isInternalArticleShellFile } from './static-routing.mjs';
 import { publicStudioContentErrorDetails } from './studio-content-document.mjs';
 import { createStudioImageAsset, resolveStudioContentAsset } from './studio-content-assets.mjs';
-import { listCollections, manageCollection } from './collection-management.mjs';
 import { saveCollectionArtwork, resolveCollectionArtwork } from './collection-artwork.mjs';
 import { buildRuntimePublicConfig, injectRuntimePublicConfig, prepareServedText } from './runtime-config.mjs';
 
 export const createBlogServer = ({ db, auth, bucket, siteOrigin, runtimeConfig, distRoot }) => {
 const DIST_ROOT = resolve(distRoot);
 const SITE_ORIGIN = new URL(siteOrigin).origin;
+const ARTICLE_ORIGIN = new URL(runtimeConfig?.articleSiteOrigin || siteOrigin).origin;
 if (!runtimeConfig?.firebase?.projectId) throw new Error('Runtime Firebase configuration is required.');
 const RUNTIME_PUBLIC_CONFIG = runtimeConfig;
-const FIREBASE_AUTH_ORIGIN = new URL('https://' + runtimeConfig.firebase.authDomain);
+// Browser authDomain can be the main site. Always fetch the helper from Firebase
+// Hosting to avoid main-site -> backend -> main-site proxy recursion.
+const FIREBASE_AUTH_ORIGIN = new URL(`https://${runtimeConfig.firebase.projectId}.firebaseapp.com`);
 const JSON_LIMIT = 64 * 1024;
 const CONTENT_JSON_LIMIT = 600 * 1024;
 const IMAGE_UPLOAD_LIMIT = 6 * 1024 * 1024;
@@ -133,17 +140,42 @@ const contentImageUploadFromPath = (pathname) => {
 };
 
 const handleApi = async (request, response, url) => {
+  if (url.pathname === '/api/content/config' && ['GET', 'HEAD'].includes(request.method)) {
+    json(response, 200, RUNTIME_PUBLIC_CONFIG);
+    return;
+  }
   if (url.pathname === '/api/content/collections' && ['GET', 'HEAD'].includes(request.method)) {
     json(response, 200, await listCollections(db));
     return;
   }
   if (url.pathname === '/api/content/articles' && ['GET', 'HEAD'].includes(request.method)) {
     const articles = await listPublishedArticles(db);
-    json(response, 200, { articles: articles.map(({ slug, title, excerpt }) => ({ slug, title, excerpt })) });
+    json(response, 200, { articles: articles.map(({ slug, title, excerpt, layout, tags, readMinutes }) => ({ slug, title, excerpt, readMinutes, collectionIds: articleCollectionIds(tags, slug), layout: articleLayout(layout) })) });
     return;
   }
   requireSameOrigin(request);
   const user = await requireUser(request);
+  if (url.pathname === '/api/content/access' && request.method === 'GET') {
+    const access = (await db.collection('studioAccess').doc(user.uid).get()).data();
+    json(response, 200, { role: access?.active ? access.role : null, active: access?.active === true }); return;
+  }
+  if (url.pathname === '/api/content/editorial/drafts' && request.method === 'GET') {
+    json(response, 200, await listEditorialDrafts({ db, uid: user.uid })); return;
+  }
+  if (url.pathname === '/api/content/editorial/metrics' && request.method === 'GET') {
+    json(response, 200, await threadMetrics({ db, uid: user.uid })); return;
+  }
+  if (['/api/content/editorial/review', '/api/content/editorial/derive', '/api/content/access'].includes(url.pathname)) {
+    if (request.method !== 'POST') throw Object.assign(new Error('Method not allowed.'), { statusCode: 405 });
+    enforceContentRateLimit(user.uid);
+    const body = await readJson(request);
+    const result = url.pathname.endsWith('/review')
+      ? await transitionReview({ db, uid: user.uid, draftId: body.draftId, action: body.action, expectedUpdatedAt: body.expectedUpdatedAt, feedback: body.feedback })
+      : url.pathname.endsWith('/derive')
+        ? await deriveArticle({ db, uid: user.uid, slug: body.slug, newDraftId: body.newDraftId, origin: ARTICLE_ORIGIN })
+        : await manageAccess({ db, user, body });
+    json(response, 200, result); return;
+  }
   if (url.pathname === '/api/content/collections') {
     if (request.method !== 'POST') throw Object.assign(new Error('Method not allowed.'), { statusCode: 405 });
     enforceContentRateLimit(user.uid);
@@ -234,7 +266,7 @@ const handleApi = async (request, response, url) => {
         expectedRevision: body.expectedRevision,
         expectedContentSha256: body.expectedContentSha256,
         articleTemplate,
-        origin: SITE_ORIGIN,
+        origin: ARTICLE_ORIGIN,
       });
       json(response, 200, preview);
       return;
@@ -246,7 +278,7 @@ const handleApi = async (request, response, url) => {
         expectedRevision: body.expectedRevision,
         expectedContentSha256: body.expectedContentSha256,
         articleTemplate,
-        origin: SITE_ORIGIN,
+        origin: ARTICLE_ORIGIN,
       })
       : contentRoute.action === 'save'
         ? await saveCanonicalDraft({
@@ -277,7 +309,7 @@ const handleApi = async (request, response, url) => {
             expectedContentSha256: body.expectedContentSha256,
             previewReceiptId: body.previewReceiptId,
             idempotencyKey: body.idempotencyKey,
-            origin: SITE_ORIGIN,
+            origin: ARTICLE_ORIGIN,
             articleTemplate,
           })
           : await unpublishDraft({ ...common, expectedUpdatedAt: body.expectedUpdatedAt });
@@ -326,12 +358,21 @@ const resolveStaticFile = async (pathname) => {
   return null;
 };
 
+const resolveCompatibleVersionedAsset = async (pathname) => {
+  if (!pathname.startsWith('/_astro/') || basename(pathname) !== pathname.slice('/_astro/'.length)) return null;
+  const directory = join(DIST_ROOT, '_astro');
+  let candidates;
+  try { candidates = await readdir(directory); } catch { return null; }
+  const replacement = compatibleVersionedAsset(basename(pathname), candidates);
+  return replacement ? join(directory, replacement) : null;
+};
+
 const loadArticleShell = () => {
   articleShellPromise ??= readFile(join(DIST_ROOT, 'article-shell-internal', 'index.html'), 'utf8');
   return articleShellPromise;
 };
 
-const serveFile = async (request, response, file, status = 200) => {
+const serveFile = async (request, response, file, status = 200, cacheControl = null) => {
   if (extname(file).toLowerCase() === '.html') {
     serveText(request, response, await readFile(file, 'utf8'), 'text/html; charset=utf-8', status);
     return;
@@ -340,7 +381,7 @@ const serveFile = async (request, response, file, status = 200) => {
   response.writeHead(status, {
     ...securityHeaders,
     'Content-Type': contentTypes[extname(file).toLowerCase()] ?? 'application/octet-stream',
-    'Cache-Control': immutable ? 'public, max-age=2592000, immutable' : 'no-cache',
+    'Cache-Control': cacheControl ?? (immutable ? 'public, max-age=2592000, immutable' : 'no-cache'),
   });
   if (request.method === 'HEAD') response.end();
   else createReadStream(file).pipe(response);
@@ -413,8 +454,28 @@ const serveContentAsset = async (request, response, assetId) => {
 };
 
 const serveStatic = async (request, response, url) => {
+  if (url.pathname === '/stories' || url.pathname === '/topics' || /^\/topics\/[a-z0-9-]+$/.test(url.pathname)) {
+    const [{ collections }, published] = await Promise.all([listCollections(db), listPublishedArticles(db)]);
+    const articles = published.map(row => ({...row, collectionIds: articleCollectionIds(row.tags, row.slug)}));
+    const html = renderCollectionsPage({ collections, articles, allArticles: url.pathname === '/stories', collectionId: url.pathname.split('/')[2], siteName: runtimeConfig.siteName || 'Library' });
+    if (!html) throw Object.assign(new Error('Collection not found.'), {statusCode:404});
+    serveText(request,response,html,'text/html; charset=utf-8',200,'no-cache'); return;
+  }
+  if (/^\/stories\/[a-z0-9-]+$/.test(url.pathname)) url = new URL('/' + url.pathname.split('/')[2], SITE_ORIGIN);
+  if (['/my-articles','/manage/collections','/manage/users','/write','/review'].includes(url.pathname)) url = new URL('/studio', SITE_ORIGIN);
+
   const requested = url.pathname === '/' ? '/index.html' : url.pathname;
   const file = await resolveStaticFile(requested);
+  if (!file) {
+    const compatibleAsset = await resolveCompatibleVersionedAsset(requested);
+    if (compatibleAsset) {
+      // Published HTML is immutable and may retain an older Astro content hash.
+      // Serve the sole current asset with the same logical entry name, but never
+      // cache the compatibility response as immutable under the historical URL.
+      await serveFile(request, response, compatibleAsset, 200, 'no-cache');
+      return;
+    }
+  }
   const normalizedPath = requested.length > 1 ? requested.replace(/\/$/, '') : requested;
   if (file && normalizedPath === '/insights') {
     const [template, articles] = await Promise.all([readFile(file, 'utf8'), loadPublishedArticlesSafely()]);

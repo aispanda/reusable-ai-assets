@@ -40,10 +40,19 @@ export const buildRuntimePublicConfig = (environment = process.env, siteOrigin) 
 
   const authDomain = value(environment, 'RUNTIME_FIREBASE_AUTH_DOMAIN');
   validateAuthDomain(authDomain);
+  const articleSiteOrigin = value(environment, 'ARTICLE_SITE_ORIGIN') || siteOrigin;
+  if (articleSiteOrigin) {
+    const parsed = new URL(articleSiteOrigin);
+    if (parsed.origin !== articleSiteOrigin || !['https:', 'http:'].includes(parsed.protocol)
+      || (parsed.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname))) {
+      throw new Error('ARTICLE_SITE_ORIGIN must be an HTTPS origin or a local test origin.');
+    }
+  }
 
   return Object.freeze({
     environment: runtimeEnvironment,
     ...(siteOrigin ? { siteOrigin: new URL(siteOrigin).origin } : {}),
+    ...(articleSiteOrigin ? { articleSiteOrigin } : {}),
     firebase: Object.freeze({
       apiKey: value(environment, 'RUNTIME_FIREBASE_API_KEY'),
       authDomain,

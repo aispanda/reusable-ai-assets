@@ -66,7 +66,8 @@ export type EditorialRole = Extract<StudioRole, 'administrator' | 'publisher' | 
 export type RoleRequest = {
   uid: string;
   email: string;
-  currentRole: 'commenter' | 'viewer';
+  currentRole: 'commenter' | 'viewer' | 'author';
+  feedback?: string;
   requestedRole: EditorialRole;
   status: 'pending' | 'approved' | 'denied' | 'cancelled';
   createdAt: string;
@@ -77,6 +78,7 @@ export type RoleRequest = {
 
 export type StudioBackend = {
   mode: 'cloud';
+  uid: string;
   role: StudioRole;
   accountEmail?: string;
   listDrafts: () => Promise<Record<string, StudioDraftRecord>>;
@@ -112,8 +114,22 @@ export type StudioBackend = {
 };
 
 const isConfigured = isFirebaseConfigured;
+export const accessRequest = async (user: User, body: Record<string, unknown>) => {
+  const response = await fetch('/api/content/access', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await user.getIdToken()}` }, body: JSON.stringify(body) });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || 'Account access could not be updated.');
+  return payload;
+};
 
 const find = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector);
+
+const revealAccessGate = () => {
+  const gate = find<HTMLElement>('[data-access-gate]');
+  if (!gate) return;
+  gate.hidden = false;
+  gate.removeAttribute('data-access-pending');
+  gate.setAttribute('aria-busy', 'false');
+};
 
 const unlockStudio = (backend: StudioBackend) => {
   const gate = find<HTMLElement>('[data-access-gate]');
@@ -121,7 +137,11 @@ const unlockStudio = (backend: StudioBackend) => {
   const account = find<HTMLElement>('[data-studio-account]');
   const accountEmail = find<HTMLElement>('[data-studio-account-email]');
   const accountRole = find<HTMLElement>('[data-studio-account-role]');
-  if (gate) gate.hidden = true;
+  if (gate) {
+    gate.hidden = true;
+    gate.removeAttribute('data-access-pending');
+    gate.setAttribute('aria-busy', 'false');
+  }
   if (studio) studio.hidden = false;
   if (account && accountEmail) {
     accountEmail.textContent = backend.accountEmail ?? 'Authorized author';
@@ -131,6 +151,7 @@ const unlockStudio = (backend: StudioBackend) => {
 };
 
 const showAccessState = (title: string, message: string) => {
+  revealAccessGate();
   const accessTitle = find<HTMLElement>('[data-access-title]');
   const accessMessage = find<HTMLElement>('[data-access-message]');
   if (accessTitle) accessTitle.textContent = title;
@@ -143,7 +164,7 @@ const signInErrorMessage = (error: unknown) => {
     : '';
   switch (code) {
     case 'auth/popup-blocked':
-      return 'This browser blocked the Google sign-in window. Allow pop-ups for this site, or open Content Studio in a normal browser tab instead of an embedded or in-app browser.';
+      return 'This browser blocked the Google sign-in window. Allow pop-ups for this site, or open My articles in a normal browser tab instead of an embedded or in-app browser.';
     case 'auth/popup-closed-by-user':
     case 'auth/cancelled-popup-request':
       return 'The Google sign-in window closed before sign-in finished. Select Continue with Google to try again.';
@@ -158,9 +179,26 @@ const signInErrorMessage = (error: unknown) => {
 
 const authorizedSessionKey = 'blog-studio-authorized-session-v1';
 const memberSessionKey = 'blog-member-session-v1';
+const profileSessionKey = 'blog-profile-complete-session-v1';
 
 const clearAuthorizedSession = () => window.localStorage.removeItem(authorizedSessionKey);
-const clearMemberSession = () => window.localStorage.removeItem(memberSessionKey);
+const clearMemberSession = () => {
+  window.localStorage.removeItem(memberSessionKey);
+  window.localStorage.removeItem(profileSessionKey);
+};
+
+const profileSessionIsCurrent = (user: User) => {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(profileSessionKey) ?? 'null');
+    return value?.uid === user.uid && typeof value.expiresAt === 'number' && value.expiresAt > Date.now();
+  } catch {
+    return false;
+  }
+};
+
+const rememberProfileSession = (user: User) => {
+  window.localStorage.setItem(profileSessionKey, JSON.stringify({ uid: user.uid, expiresAt: Date.now() + 60 * 60 * 1000 }));
+};
 
 const rememberMemberSession = (user: User, role: StudioRole) => {
   window.localStorage.setItem(memberSessionKey, JSON.stringify({
@@ -257,6 +295,7 @@ const recordAuthorizedProfile = async (user: User) => {
     lastSeenAt: now,
     privacyNoticeVersion: '2026-08-16',
   });
+  rememberProfileSession(user);
 };
 
 const createCloudBackend = (user: User, role: EditorialRole) => {
@@ -274,9 +313,10 @@ const createCloudBackend = (user: User, role: EditorialRole) => {
     const digest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
     return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
   };
-  const contentDocument = (content: unknown) => ({
+  const contentDocument = (content: unknown, layout?: unknown) => ({
     format: STUDIO_CONTENT_FORMAT,
-    ...studioContentVersion(content),
+    ...studioContentVersion(content, layout),
+    ...(layout === undefined ? {} : { layout }),
     content,
   });
   const canonicalDraftPayload = (draft: StudioDraftRecord) => ({
@@ -284,7 +324,7 @@ const createCloudBackend = (user: User, role: EditorialRole) => {
     excerpt: String(draft.excerpt ?? '').trim(),
     slug: String(draft.slug ?? ''),
     tags: String(draft.tags ?? '').trim(),
-    ...contentDocument(draft.content),
+    ...contentDocument(draft.content, draft.layout),
   });
   const publicationRevision = (id: string) => {
     const current = draftVersions.get(id);
@@ -336,17 +376,21 @@ const createCloudBackend = (user: User, role: EditorialRole) => {
   };
   return {
     mode: 'cloud' as const,
+    uid: user.uid,
     role,
     accountEmail: user.email ?? undefined,
     listDrafts: async () => {
-      const drafts = collection(db, 'contentDrafts');
-      const snapshot = await getDocs(
-        role === 'administrator' || role === 'publisher'
-          ? drafts
-          : query(drafts, where('ownerUid', '==', user.uid)),
-      );
-      const entries = await Promise.all(snapshot.docs.map(async (snapshotDraft) => {
-        const record = snapshotDraft.data() as StudioDraftRecord;
+      const response = await fetch('/api/content/editorial/drafts', {
+        headers: { Authorization: `Bearer ${await user.getIdToken()}` }, cache: 'no-store',
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Articles could not be loaded.');
+      const records: Record<string, StudioDraftRecord> = Array.isArray(payload.drafts)
+        ? Object.fromEntries(payload.drafts.map((record: StudioDraftRecord & { id: string }) => [record.id, record]))
+        : payload.drafts;
+      const entries = await Promise.all(Object.entries(records).map(async ([id, record]) => {
+        if (record.administrationOnly === true) return [id, record] as const;
+        const snapshotDraft = { id };
         if (record.format === STUDIO_CONTENT_FORMAT) {
           const revision = Number(record.revision);
           const contentSha256 = String(record.contentSha256 ?? '');
@@ -471,26 +515,12 @@ const createCloudBackend = (user: User, role: EditorialRole) => {
     },
     reviewRoleRequest: async (request: RoleRequest, decision: 'approved' | 'denied') => {
       if (role !== 'administrator') throw new Error('Only administrators can review access requests.');
-      const batch = writeBatch(db);
-      if (decision === 'approved') {
-        batch.update(doc(db, 'studioAccess', request.uid), {
-          active: true,
-          role: request.requestedRole,
-          approvedAt: new Date().toISOString(),
-          approvedBy: user.uid,
-        });
-      }
-      batch.update(doc(db, 'roleRequests', request.uid), {
-        status: decision,
-        reviewedAt: new Date().toISOString(),
-        reviewedBy: user.uid,
-      });
-      await batch.commit();
+      await accessRequest(user, { action: 'review-request', uid: request.uid, decision, feedback: decision === 'denied' ? window.prompt('Feedback for the applicant') ?? '' : '' });
     },
   } satisfies StudioBackend;
 };
 
-const showRoleRequestPanel = async (user: User, role: 'commenter' | 'viewer') => {
+export const showRoleRequestPanel = async (user: User, role: 'commenter' | 'viewer' | 'author') => {
   const db = getFirestore();
   const panel = find<HTMLElement>('[data-role-request-panel]');
   const email = find<HTMLElement>('[data-role-request-email]');
@@ -501,6 +531,7 @@ const showRoleRequestPanel = async (user: User, role: 'commenter' | 'viewer') =>
   if (!panel || !select || !submit || !cancel || !status || !user.email) return;
 
   panel.hidden = false;
+  if (role === 'author') { select.querySelector('option[value="author"]')?.remove(); select.value = 'publisher'; }
   if (email) email.textContent = user.email;
   const requestRef = doc(db, 'roleRequests', user.uid);
   let lastCancelledAt = '';
@@ -577,18 +608,19 @@ const showRoleRequestPanel = async (user: User, role: 'commenter' | 'viewer') =>
       showPendingState(request.requestedRole);
       return;
     }
-    if (request.status === 'approved') {
+    if (request.status === 'approved' && request.requestedRole !== role) {
       requestApproved = true;
-      status.textContent = 'Your request was approved. Reload Studio to continue.';
+      status.textContent = 'Your request was approved. Reload your articles to continue.';
       select.disabled = true;
       cancel.hidden = true;
-      submit.textContent = 'Reload Studio';
+      submit.textContent = 'Reload your articles';
       return;
     }
+    if (request.status === 'approved') { showReadyState(`Your ${role} access is active. You can apply for Publisher access.`); return; }
     showReadyState(
       request.status === 'cancelled'
         ? 'Request cancelled. Choose a role whenever you are ready.'
-        : 'Your previous request was not approved. You may submit a different request.',
+        : `Your previous request was returned.${request.feedback ? ` Feedback: ${request.feedback}` : ''} You may apply again.`,
     );
     return;
   }
@@ -609,13 +641,25 @@ export const initializeStudioBackend = async (): Promise<StudioBackend> => {
 
   const app = getFirebaseClientApp();
   const auth = getAuth(app);
-  await setPersistence(auth, browserLocalPersistence);
+  retryButton?.addEventListener('click', async () => {
+    clearAuthorizedSession();
+    clearMemberSession();
+    await signOut(auth);
+    window.location.reload();
+  });
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+  } catch (error) {
+    console.error('[studio] authentication persistence failed', error);
+    showAccessState('Sign-in unavailable', 'Your account session could not be restored. Reload the page to try again.');
+    if (retryButton) retryButton.hidden = false;
+    return new Promise<StudioBackend>(() => undefined);
+  }
   const db = getFirestore(app);
 
   if (googleButton) {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    googleButton.hidden = false;
     googleButton.addEventListener('click', async () => {
       googleButton.disabled = true;
       showAccessState('Signing you in…', 'Choose your Google account to continue.');
@@ -629,22 +673,49 @@ export const initializeStudioBackend = async (): Promise<StudioBackend> => {
     });
   }
 
-  retryButton?.addEventListener('click', async () => {
-    clearAuthorizedSession();
-    clearMemberSession();
-    await signOut(auth);
-    window.location.reload();
-  });
-
   return new Promise<StudioBackend>((resolve) => {
-    const stopObserving = onAuthStateChanged(auth, async (user) => {
+    let authGeneration = 0;
+    let unlockedUid: string | null = null;
+    let sessionEnded = false;
+    const lockStudio = () => {
+      sessionEnded = true;
+      clearAuthorizedSession();
+      clearMemberSession();
+      const studio = find<HTMLElement>('[data-studio]');
+      if (studio) {
+        studio.hidden = true;
+        studio.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach(dialog => dialog.close());
+      }
+      const gate = find<HTMLElement>('[data-access-gate]');
+      if (gate) revealAccessGate();
+    };
+    onAuthStateChanged(auth, async (user) => {
+      const generation = ++authGeneration;
+      if (unlockedUid) {
+        if (user?.uid !== unlockedUid) {
+          lockStudio();
+          showAccessState('Account changed', 'Reloading this page to protect your work.');
+          // Recreate the editor and its bound backend for the new identity.
+          // An existing editor must never be reused across accounts.
+          window.location.reload();
+        }
+        return;
+      }
       if (!user) {
         clearAuthorizedSession();
         clearMemberSession();
-        showAccessState('Sign in to Content Studio', 'New accounts start as Commenters. Editorial tools require Administrator approval.');
-        if (googleButton) googleButton.disabled = false;
+        showAccessState('Sign in to write', 'New accounts start as Commentators. Editorial tools require Administrator approval.');
+        if (googleButton) {
+          googleButton.hidden = false;
+          googleButton.disabled = false;
+        }
+        if (retryButton) retryButton.hidden = true;
         return;
       }
+
+      if (googleButton) googleButton.hidden = true;
+      if (retryButton) retryButton.hidden = true;
+      const isCurrentUser = () => generation === authGeneration && auth.currentUser?.uid === user.uid;
 
       if (!user.email || !user.emailVerified) {
         showAccessState('Verified email required', 'This Google account does not provide a verified email address.');
@@ -655,32 +726,43 @@ export const initializeStudioBackend = async (): Promise<StudioBackend> => {
       try {
         const accessRef = doc(db, 'studioAccess', user.uid);
         let access = await getDoc(accessRef);
+        if (!isCurrentUser()) return;
         if (!access.exists()) {
-          const invite = await getDoc(doc(db, 'studioInvites', user.email));
-          const invitedRole = invite.exists() ? invite.data().role : undefined;
-          const initialRole = invite.exists() && invite.data().active === true && typeof invitedRole === 'string'
-            ? invitedRole
-            : 'commenter';
           await setDoc(accessRef, {
             active: true,
-            role: initialRole,
+            role: 'commenter',
             email: user.email,
             claimedAt: new Date().toISOString(),
           });
           access = await getDoc(accessRef);
+          if (!isCurrentUser()) return;
+        }
+        // Existing editorial accounts do not need to re-claim an invitation on
+        // every route. The access document below remains the authority for each
+        // page load, so this reduces latency without trusting browser storage.
+        const existingRole = access.exists() ? access.data().role : undefined;
+        if (user.providerData.some(provider => provider.providerId === 'google.com') && (!access.exists() || existingRole === 'commenter')) {
+          await accessRequest(user, { action: 'claim-invite' });
+          if (!isCurrentUser()) return;
+          access = await getDoc(accessRef);
+          if (!isCurrentUser()) return;
         }
         const role = access.exists() ? access.data().role : undefined;
         const allowed = access.exists()
           && access.data().active === true
           && (role === 'administrator' || role === 'publisher' || role === 'author');
         rememberMemberSession(user, role as StudioRole);
-        await recordAuthorizedProfile(user);
+        // Profile completion is not an access-control decision. Keep the first
+        // completion flow, then remember it briefly to avoid delaying every
+        // editorial route with another read/write.
+        if (!profileSessionIsCurrent(user)) await recordAuthorizedProfile(user);
+        if (!isCurrentUser()) return;
         if (!allowed && (role === 'commenter' || role === 'viewer')) {
           clearAuthorizedSession();
           showAccessState(
-            role === 'commenter' ? 'Commenter access active' : 'View-only access active',
+            role === 'commenter' ? 'Commentator access active' : 'View-only access active',
             role === 'commenter'
-              ? 'You can participate in comments on published articles. Request an editorial role to enter Content Studio.'
+              ? 'You can participate in comments on published articles. Request an editorial role to enter My articles.'
               : 'This account can read permitted content but cannot create or edit content.',
           );
           if (googleButton) googleButton.hidden = true;
@@ -696,9 +778,20 @@ export const initializeStudioBackend = async (): Promise<StudioBackend> => {
           return;
         }
 
-        const backend = createCloudBackend(user, role as EditorialRole);
+        const backend = new Proxy(createCloudBackend(user, role as EditorialRole), {
+          get(target, key, receiver) {
+            const value = Reflect.get(target, key, receiver);
+            if (typeof value !== 'function') return value;
+            return (...args: unknown[]) => {
+              if (sessionEnded || auth.currentUser?.uid !== user.uid) {
+                return Promise.reject(new Error('Your account changed. Reload before continuing.'));
+              }
+              return value.apply(target, args);
+            };
+          },
+        });
         rememberAuthorizedSession(user, role);
-        stopObserving();
+        unlockedUid = user.uid;
         unlockStudio(backend);
         document.querySelectorAll<HTMLButtonElement>('[data-studio-signout]').forEach((control) => {
           control.addEventListener('click', async () => {
@@ -710,10 +803,18 @@ export const initializeStudioBackend = async (): Promise<StudioBackend> => {
         });
         resolve(backend);
       } catch (error) {
+        if (!isCurrentUser()) return;
         console.error('[studio] access check failed', error);
         showAccessState('Access check failed', 'The allowlist could not be checked. Verify Firestore and its security rules, then try again.');
         if (retryButton) retryButton.hidden = false;
       }
+    }, (error) => {
+      authGeneration += 1;
+      if (unlockedUid) lockStudio();
+      console.error('[studio] authentication state failed', error);
+      showAccessState('Sign-in unavailable', 'Your account state could not be checked. Reload the page to try again.');
+      if (googleButton) googleButton.hidden = true;
+      if (retryButton) retryButton.hidden = false;
     });
   });
 };

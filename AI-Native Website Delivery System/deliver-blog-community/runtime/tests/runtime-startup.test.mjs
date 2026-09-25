@@ -81,3 +81,24 @@ test('managed mode requires HTTPS and rejects ambient emulator redirects', () =>
   assert.throws(() => loadStartupConfig(emulatorEnvironment({ BLOG_EMULATOR_MODE: 'false' })));
   assert.throws(() => loadStartupConfig(emulatorEnvironment({ PUBLIC_SITE_ORIGIN: 'https://name:pass@journal.example' })));
 });
+
+import { resolveBuiltDeploymentProfile, assertProductionSiteProfile } from '../server/production-profile.mjs';
+const builtDeployment = {site:{siteName:'Journal',description:'Independent writing',siteOrigin:'https://journal.example'},productionProjectId:'journal-prod-123'};
+const stageApproval = {productionSiteOrigin:'https://journal.example',productionProjectId:'journal-prod-123',siteOrigin:'https://stage.journal.example',projectId:'journal-stage-123'};
+const stageActual = {environment:'staging',siteOrigin:'https://stage.journal.example',projectId:'journal-stage-123'};
+test('immutable image accepts only the explicitly approved isolated staging tuple',()=>{
+  const result=resolveBuiltDeploymentProfile(builtDeployment,stageActual,stageApproval);
+  assert.equal(result.siteOrigin,stageActual.siteOrigin);assert.equal(result.siteName,'Journal');
+});
+test('production origin and project remain pinned and cannot use staging approval',()=>{
+  assert.equal(resolveBuiltDeploymentProfile(builtDeployment,{environment:'production',siteOrigin:'https://journal.example',projectId:'journal-prod-123'}).siteOrigin,'https://journal.example');
+  assert.throws(()=>resolveBuiltDeploymentProfile(builtDeployment,{...stageActual,environment:'production'}),/must match/);
+  assert.throws(()=>resolveBuiltDeploymentProfile(builtDeployment,{environment:'production',siteOrigin:'https://journal.example',projectId:'journal-stage-123'}),/does not match/);
+  assert.throws(()=>resolveBuiltDeploymentProfile(builtDeployment,{...stageActual,environment:'production'},stageApproval),/cannot be used/);
+  assert.throws(()=>assertProductionSiteProfile(builtDeployment.site,'https://stage.journal.example'),/must match/);
+});
+test('missing, stale, malformed or non-isolated staging approvals fail closed',()=>{
+  for(const approval of [undefined,{}, {...stageApproval,extra:true},{...stageApproval,productionSiteOrigin:'https://old.example'},{...stageApproval,productionProjectId:'other-prod-123'},{...stageApproval,siteOrigin:'http://stage.journal.example'},{...stageApproval,siteOrigin:'https://stage.journal.example/path'},{...stageApproval,siteOrigin:'https://stage.journal.example/'},{...stageApproval,siteOrigin:'https://journal.example'},{...stageApproval,projectId:'journal-prod-123'}]) assert.throws(()=>resolveBuiltDeploymentProfile(builtDeployment,stageActual,approval));
+  for(const actual of [{...stageActual,projectId:'other-stage-123'},{...stageActual,siteOrigin:'https://unapproved.example'},{...stageActual,environment:'preview'}]) assert.throws(()=>resolveBuiltDeploymentProfile(builtDeployment,actual,stageApproval));
+  assert.throws(()=>resolveBuiltDeploymentProfile(builtDeployment.site,stageActual,stageApproval),/explicit production project/);
+});

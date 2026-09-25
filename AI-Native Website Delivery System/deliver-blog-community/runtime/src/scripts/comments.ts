@@ -103,6 +103,7 @@ export const initializeComments = () => {
   const list = find<HTMLElement>('[data-comments-list]');
   const count = find<HTMLElement>('[data-comments-count]');
   const notice = find<HTMLElement>('[data-comments-notice]');
+  const authState = find<HTMLElement>('[data-comments-auth-state]');
   const signedOut = find<HTMLElement>('[data-comments-signed-out]');
   const signInButton = find<HTMLButtonElement>('[data-comments-signin]');
   const member = find<HTMLElement>('[data-comments-member]');
@@ -137,6 +138,7 @@ export const initializeComments = () => {
   if (!isConfigured) {
     list.innerHTML = '<p class="comments-empty">Comments are unavailable because sign-in has not been configured.</p>';
     count.textContent = 'Unavailable';
+    if (authState) authState.textContent = 'Commenting is unavailable.';
     if (signedOut) signedOut.hidden = true;
     return;
   }
@@ -471,6 +473,7 @@ export const initializeComments = () => {
       return Promise.reject(new Error('The member profile form is unavailable.'));
     }
     populateCountryOptions(profileCountry);
+    if (authState) authState.hidden = true;
     if (signedOut) signedOut.hidden = true;
     profileForm.hidden = false;
     return new Promise((resolve) => {
@@ -557,7 +560,41 @@ export const initializeComments = () => {
     currentRole = null;
     ownedCommentIds = new Set();
     likedCommentIds = new Set();
+    if (authState) authState.hidden = true;
     if (signedOut) signedOut.hidden = false;
+    if (member) member.hidden = true;
+    if (composer) composer.hidden = true;
+    if (viewOnly) viewOnly.hidden = true;
+    if (profileForm) profileForm.hidden = true;
+    renderComments();
+  };
+
+  const showCheckingAccount = () => {
+    currentUser = null;
+    currentRole = null;
+    ownedCommentIds = new Set();
+    likedCommentIds = new Set();
+    if (authState) {
+      authState.textContent = 'Preparing your account…';
+      authState.hidden = false;
+    }
+    if (signedOut) signedOut.hidden = true;
+    if (member) member.hidden = true;
+    if (composer) composer.hidden = true;
+    if (viewOnly) viewOnly.hidden = true;
+    if (profileForm) profileForm.hidden = true;
+  };
+
+  const showAccountUnavailable = (message: string) => {
+    currentUser = null;
+    currentRole = null;
+    ownedCommentIds = new Set();
+    likedCommentIds = new Set();
+    if (authState) {
+      authState.textContent = message;
+      authState.hidden = false;
+    }
+    if (signedOut) signedOut.hidden = true;
     if (member) member.hidden = true;
     if (composer) composer.hidden = true;
     if (viewOnly) viewOnly.hidden = true;
@@ -606,25 +643,34 @@ export const initializeComments = () => {
     setNotice('Signed out.');
   });
 
+  let authGeneration = 0;
   void setPersistence(auth, browserLocalPersistence).then(() => {
     onAuthStateChanged(auth, async (user) => {
+      const generation = ++authGeneration;
       if (!user) {
         clearMemberSessions();
         showSignedOut();
         if (signInButton) signInButton.disabled = false;
         return;
       }
+      showCheckingAccount();
+      const isCurrentUser = () => generation === authGeneration && auth.currentUser?.uid === user.uid;
       if (!user.email || !user.emailVerified) {
+        showAccountUnavailable('A verified Google email address is required to comment.');
         setNotice('A verified Google email address is required.', true);
         return;
       }
       try {
         const role = await ensureAccess(user);
+        if (!isCurrentUser()) return;
         await ensureProfile(user);
+        if (!isCurrentUser()) return;
         currentUser = user;
         currentRole = role;
         await Promise.all([loadOwnedCommentIds(user), loadLikedCommentIds(user)]);
+        if (!isCurrentUser()) return;
         rememberMemberSession(user, role);
+        if (authState) authState.hidden = true;
         if (signedOut) signedOut.hidden = true;
         if (member) member.hidden = false;
         if (memberName) memberName.textContent = user.displayName || user.email;
@@ -638,10 +684,20 @@ export const initializeComments = () => {
         setNotice();
         renderComments();
       } catch (error) {
+        if (!isCurrentUser()) return;
         console.error('[comments] account setup failed', error);
+        showAccountUnavailable('Your account is signed in, but commenting access is temporarily unavailable.');
         setNotice(error instanceof Error ? error.message : 'Your account could not be prepared for comments.', true);
       }
+    }, (error) => {
+      authGeneration += 1;
+      console.error('[comments] authentication state failed', error);
+      showAccountUnavailable('Your account state could not be checked. Reload the page to try again.');
+      setNotice('Commenting access is temporarily unavailable.', true);
     });
+  }).catch((error) => {
+    console.error('[comments] authentication persistence failed', error);
+    showAccountUnavailable('Your account session could not be restored. Reload the page to try again.');
   });
 
   void loadComments();

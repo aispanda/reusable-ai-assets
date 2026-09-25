@@ -5,15 +5,18 @@ description: Install, verify, or upgrade a site's Google sign-in, role requests,
 
 # Deliver Blog Community
 
-Current runtime: **0.2.0-rc.7 local integration candidate; not a production release**.
+Current runtime: **0.2.0-rc.8 local integration candidate; not a production release**.
 Read [CAPABILITY.md](CAPABILITY.md) first. Code is in `runtime/`; use the hash-pinned
 installer and [runtime instructions](references/runtime.md). Configuration checks
 alone never establish tested delivery or complete scenario coverage.
 
 ## Route by request
 
-- **Collection artwork:** use [the optional upload adapter](references/collection-artwork.md).
-  It does not supply a full collection dashboard or a shared versioned media library.
+- **Repeatable adoption:** use [the deterministic driver](references/adoption-driver.md)
+  for pinned install, verification and guarded upgrades. Keep consumer configuration outside core.
+- **Native Node host:** use [the native mount](references/integration-node.md) to preserve host routes.
+- **Collections/users:** the runtime includes administrator collection and user management,
+  role invitations, application review and artwork uploads. A cross-site versioned media library is not included.
 - **Assess/adopt:** validate the consumer profile against [the contract](references/contract.md).
   Inspect the existing site's auth, roles and data before suggesting replacement.
 - **Verify:** read only relevant IDs from [scenarios.json](assets/scenarios.json);
@@ -45,6 +48,10 @@ Run the actual tests and report all 36 IDs using `runtime/tests/scenarios.test.m
 Keep missing layers/features UNPROVEN, even when their linked backend suite passes.
 
 Keep these invariants through every adaptation:
+- Explicit account sign-in lands on the host home page after access/profile initialization.
+  Restoring a session must not redirect an account-settings visit. My articles and
+  bare studio open the list; only an explicit New/Edit action opens an editor.
+  Emulator session injection does not prove Google sign-in or its landing behavior.
 - New sign-ins receive the lowest approved role, not automatic publishing rights.
 - API/rules enforce role, ownership and current active status independently of UI.
 - Draft edits never alter the live snapshot until explicit authorized publication.

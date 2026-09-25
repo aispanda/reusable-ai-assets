@@ -174,7 +174,7 @@ test('unauthorized or failed uploads never change the draft or expose an asset',
   await assert.rejects(createStudioImageAsset({
     db: unauthorizedDb, bucket: fakeBucket(), draftId: 'draft-1', publisherUid: 'author-2', assetId,
     bytes: png(), mimeType: 'image/png', alt: 'Diagram', decorative: false, caption: '',
-  }), /drafts they own/);
+  }), /articles you own/);
   assert.deepEqual(unauthorizedDb.records.get('contentDrafts/draft-1'), baseline);
   assert.equal(unauthorizedDb.records.has(`contentAssets/${assetId}`), false);
 

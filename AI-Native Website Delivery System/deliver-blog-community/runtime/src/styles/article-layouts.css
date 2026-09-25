@@ -1,0 +1,37 @@
+/* Consumer-owned text-layout preview. Host artwork is composed separately. */
+.studio-layout-picker { margin: 1.2rem 0; padding: 0; border: 0; }
+.studio-layout-picker legend { margin-bottom: .7rem; font-weight: 700; }
+.studio-layout-guidance { margin: 0 0 .85rem; padding: .8rem .9rem; border: 1px solid #d1d8cf; border-left: 3px solid #196f54; border-radius: .35rem; background: #f6f8f3; }
+.studio-layout-guidance > strong { display: block; margin-bottom: .25rem; }
+.studio-layout-guidance ul { margin: .35rem 0 .5rem; padding-left: 1.1rem; }
+.studio-layout-guidance li { margin: .28rem 0; }
+.studio-layout-guidance p { margin: 0; color: #425046; }
+.studio-layout-picker label { display: flex; align-items: flex-start; gap: .65rem; padding: .7rem; margin: .4rem 0; border: 1px solid #cbd5cc; border-radius: .5rem; cursor: pointer; }
+.studio-layout-picker label:has(input:checked) { border: 2px solid #196f54; background: #edf5ef; padding: calc(.7rem - 1px); }
+.studio-layout-picker input { margin-top: .3rem; accent-color: #196f54; }
+.studio-layout-picker label span { display: block; flex: 1; }
+.studio-layout-picker strong, .studio-layout-picker small { display: block; }
+.studio-layout-picker small, .studio-layout-picker > p { font-size: .76rem; line-height: 1.45; }
+.studio-layout-picker > p { color: #5a665d; }
+.layout-diagram { display: block; height: 45px; margin-bottom: .6rem; border: 1px solid #d1d8cf; background: #fffdf7; }
+.layout-diagram-classic { background: repeating-linear-gradient(to bottom,#d8dfd5 0 2px,transparent 2px 8px) center/55% 65% no-repeat #fffdf7; }
+.layout-diagram-visual { background: linear-gradient(#acc7ac,#acc7ac) center 5px/88% 16px no-repeat,repeating-linear-gradient(to bottom,#d8dfd5 0 2px,transparent 2px 7px) center 27px/65% 12px no-repeat #fffdf7; }
+.layout-diagram-study { background: linear-gradient(#e4d4ab,#e4d4ab) 88% center/23% 76% no-repeat,repeating-linear-gradient(to bottom,#d8dfd5 0 2px,transparent 2px 7px) 14% center/48% 76% no-repeat #fffdf7; }
+.insight-article[data-article-layout] { color: #203328; background: #fcfaf4; }
+.insight-article[data-article-layout] .insight-prose { color: #37443c; margin-inline: auto; }
+.insight-article[data-article-layout] .insight-prose :is(h2,h3) { font-family: Georgia, serif; }
+.insight-article[data-article-layout] figure[data-studio-image] { margin: 2rem 0; }
+.insight-article[data-article-layout] figure[data-studio-image] img { display: block; max-width: 100%; height: auto; }
+.layout-study-prompts { display: none; }
+.insight-article[data-article-layout="classic-reading"] .insight-main { max-width: 850px; }
+.insight-article[data-article-layout="classic-reading"] .insight-prose { font-family: Georgia, serif; font-size: 1.12rem; line-height: 1.85; }
+.insight-article[data-article-layout="visual-journey"] .insight-main { width: min(1120px,100%); }
+.insight-article[data-article-layout="visual-journey"] .insight-hero { text-align: center; padding-block: 4rem 3rem; }
+.insight-article[data-article-layout="visual-journey"] .insight-body { background: #f8f1df; padding: clamp(1.25rem,5vw,4rem); }
+.insight-article[data-article-layout="visual-journey"] .insight-prose h2 { padding-block: 2rem 1rem; margin-top: 3rem; border-top: 1px solid #bbc8b5; font-size: clamp(1.7rem,3vw,2.5rem); }
+.insight-article[data-article-layout="study-reflection"] .insight-main { width: min(1120px,100%); display: grid; grid-template-columns: minmax(0,1fr) 240px; gap: 1.6rem; align-items: start; }
+.insight-article[data-article-layout="study-reflection"] .insight-hero { grid-column: 1/-1; }
+.insight-article[data-article-layout="study-reflection"] .layout-study-prompts { display: block; grid-column: 2; grid-row: 2; background: #edf3e8; border-top: 3px solid #196f54; padding: 1.3rem; position: sticky; top: 5rem; }
+.layout-study-prompts h2 { font: 1.35rem Georgia,serif; }
+.layout-study-prompts p { font-size: .9rem; padding-top: .8rem; border-top: 1px solid #d1dccb; }
+@media (max-width: 760px) { .insight-article[data-article-layout="study-reflection"] .insight-main { display: block; } .insight-article[data-article-layout="study-reflection"] .layout-study-prompts { position: static; margin-block: 1.5rem; } }

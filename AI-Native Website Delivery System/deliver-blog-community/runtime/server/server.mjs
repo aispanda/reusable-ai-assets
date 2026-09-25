@@ -110,13 +110,21 @@ const requireSameOrigin = (request) => {
 const requireUser = async (request) => {
   const authorization = request.headers.authorization ?? '';
   if (!authorization.startsWith('Bearer ')) throw Object.assign(new Error('Sign in to continue.'), { statusCode: 401 });
+  let user;
   try {
-    const user = await auth.verifyIdToken(authorization.slice(7), true);
-    if (user.email_verified !== true) throw new Error('Verified sign-in required.');
-    return user;
-  } catch {
-    throw Object.assign(new Error('Your sign-in session expired. Sign in again.'), { statusCode: 401 });
+    user = await auth.verifyIdToken(authorization.slice(7), true);
+  } catch (error) {
+    const invalidSession = ['auth/id-token-expired', 'auth/id-token-revoked', 'auth/invalid-id-token',
+      'auth/argument-error', 'auth/user-disabled', 'auth/user-not-found'].includes(error?.code);
+    // Revocation checks also call the Auth service. IAM/network failures must
+    // fail closed without incorrectly telling a valid user to sign in again.
+    throw Object.assign(new Error(invalidSession ? 'Your sign-in session expired. Sign in again.' : 'Account verification is unavailable.'), {
+      statusCode: invalidSession ? 401 : 503,
+      code: invalidSession ? 'auth/session-invalid' : 'auth/verification-unavailable',
+    });
   }
+  if (user.email_verified !== true) throw Object.assign(new Error('Verified sign-in required.'), { statusCode: 401 });
+  return user;
 };
 
 const enforceContentRateLimit = (uid) => {
@@ -542,7 +550,8 @@ const server = createServer(async (request, response) => {
     else json(response, 405, { error: 'Method not allowed.' });
   } catch (error) {
     const status = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
-    if (status >= 500) console.error('Request failed', { status, name: error?.name });
+    if (status >= 500) console.error('Request failed', { status, name: error?.name,
+      ...(error?.code === 'auth/verification-unavailable' ? { code: error.code } : {}) });
     const details = status < 500 ? publicStudioContentErrorDetails(error) : null;
     json(response, status, {
       error: status >= 500 ? 'The service could not complete this request.' : error.message,

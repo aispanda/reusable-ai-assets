@@ -99,22 +99,7 @@ export const initializeAccountSettings = async () => {
   await setPersistence(auth, browserLocalPersistence);
 
   const provider = new GoogleAuthProvider();
-  const signInNavigation = createSignInNavigation((path: string) => window.location.assign(path));
   provider.setCustomParameters({ prompt: 'select_account' });
-
-  signInButton?.addEventListener('click', async () => {
-    signInNavigation.begin();
-    signInButton.disabled = true;
-    if (status) status.textContent = 'Choose your Google account to continue.';
-    try {
-      const result = await signInWithPopup(auth, provider);
-      signInNavigation.authenticated(result.user.uid);
-    } catch (error) {
-      signInNavigation.cancel();
-      signInButton.disabled = false;
-      if (status) status.textContent = signInErrorMessage(error);
-    }
-  });
 
   signOutButton?.addEventListener('click', async () => {
     clearMemberSessions();
@@ -157,20 +142,19 @@ export const initializeAccountSettings = async () => {
     }
   });
 
-  onAuthStateChanged(auth, async (user) => {
+  const initializeAccount = async (user: User | null): Promise<boolean> => {
     if (!user) {
       if (loading) loading.hidden = true;
       if (content) content.hidden = true;
       if (signedOut) signedOut.hidden = false;
       if (signInButton) signInButton.disabled = false;
-      return;
+      return false;
     }
     if (!user.email || !user.emailVerified) {
-      signInNavigation.cancel();
       if (loading) loading.hidden = true;
       if (signedOut) signedOut.hidden = false;
       if (status) status.textContent = 'Use a Google account with a verified email address.';
-      return;
+      return false;
     }
 
     try {
@@ -183,7 +167,6 @@ export const initializeAccountSettings = async () => {
       if (user.providerData.some(provider => provider.providerId === 'google.com')) await accessRequest(user, { action: 'claim-invite' });
       access = await getDoc(accessRef);
       if (access.data()?.active !== true) {
-        signInNavigation.cancel();
         clearMemberSessions();
         if (name) name.value = user.displayName || '';
         if (email) email.value = user.email;
@@ -196,7 +179,7 @@ export const initializeAccountSettings = async () => {
         if (loading) loading.hidden = true;
         if (signedOut) signedOut.hidden = true;
         if (content) content.hidden = false;
-        return;
+        return false;
       }
       const accessRole = access.data()?.role;
       const memberRole: MemberRole = roles.has(accessRole) ? accessRole : 'commenter';
@@ -234,12 +217,29 @@ export const initializeAccountSettings = async () => {
       if (loading) loading.hidden = true;
       if (signedOut) signedOut.hidden = true;
       if (content) content.hidden = false;
-      signInNavigation.ready(user.uid);
+      return true;
     } catch (error) {
-      signInNavigation.cancel();
       if (loading) loading.hidden = true;
+      if (content) content.hidden = true;
       if (signedOut) signedOut.hidden = false;
+      if (signInButton) signInButton.disabled = false;
       if (status) status.textContent = error instanceof Error ? error.message : 'Your account could not be loaded.';
+      return false;
     }
+  };
+
+  const signInNavigation = createSignInNavigation({
+    signIn: () => signInWithPopup(auth, provider),
+    initialize: initializeAccount,
+    navigate: (path: string) => window.location.assign(path),
+    onBusy: (busy: boolean) => {
+      if (signInButton) signInButton.disabled = busy;
+      if (busy && status) status.textContent = 'Choose your Google account to continue.';
+    },
+    onError: (error: unknown) => {
+      if (status) status.textContent = signInErrorMessage(error);
+    },
   });
+  signInButton?.addEventListener('click', () => { void signInNavigation.signIn(); });
+  onAuthStateChanged(auth, (user) => { void signInNavigation.restore(user); });
 };

@@ -9,6 +9,41 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+test('HTTP authentication distinguishes invalid sessions from unavailable verification and always checks revocation', async t => {
+  let failureCode, verified = true, reads = 0;
+  const db = { collection: () => { reads++; return { doc: () => ({ get: async () => ({ data: () => ({ active: true, role: 'author' }) }) }) }; } };
+  const auth = { verifyIdToken: async (token, checkRevoked) => {
+    assert.equal(token, 'test-token'); assert.equal(checkRevoked, true);
+    if (failureCode) throw Object.assign(new Error('Private provider details must not escape'), { code: failureCode });
+    return { uid: 'member', email_verified: verified };
+  } };
+  const server = createBlogServer({ db, auth, bucket: {}, distRoot: '.', siteOrigin: 'http://127.0.0.1',
+    runtimeConfig: { firebase: { projectId: 'demo-auth-boundary' } } });
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${server.address().port}/api/content/access`;
+  for (const code of ['auth/id-token-expired', 'auth/id-token-revoked', 'auth/invalid-id-token',
+    'auth/argument-error', 'auth/user-disabled', 'auth/user-not-found',
+    'auth/insufficient-permission', 'auth/internal-error', 'app/network-error', 'unknown']) {
+    failureCode = code;
+    const response = await fetch(url, { headers: { Authorization: 'Bearer test-token' } });
+    const credentialFailure = ['auth/id-token-expired', 'auth/id-token-revoked', 'auth/invalid-id-token',
+      'auth/argument-error', 'auth/user-disabled', 'auth/user-not-found'].includes(code);
+    assert.equal(response.status, credentialFailure ? 401 : 503, code);
+    assert.deepEqual(await response.json(), { error: credentialFailure
+      ? 'Your sign-in session expired. Sign in again.' : 'The service could not complete this request.' });
+  }
+  failureCode = undefined; verified = false;
+  assert.equal((await fetch(url, { headers: { Authorization: 'Bearer test-token' } })).status, 401);
+  assert.equal((await fetch(url)).status, 401);
+  assert.equal(reads, 0, 'No account reads or mutations when verification fails');
+  verified = true;
+  const response = await fetch(url, { headers: { Authorization: 'Bearer test-token' } });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { role: 'author', active: true });
+  assert.equal(reads, 1);
+});
+
 test('public collection routes retain each host name and legacy branding defaults', async t => {
   const db = { collection: name => name === 'contentCollections'
     ? { doc: () => ({ get: async () => ({ exists: true, data: () => ({ revision: 1, collections: [{ id: 'building', title: 'Building', order: 1 }] }) }) }) }

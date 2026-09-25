@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateStagingInputs, validateStagingSession, verifyImageStoragePrerequisites, requiredImageStoragePermissions } from './staging-preflight.mjs';
+import { validateStagingInputs, validateStagingSession, verifyImageStoragePrerequisites, requiredImageStoragePermissions, verifyFirebaseAuthPrerequisites, firebaseAuthUserLookupPermission } from './staging-preflight.mjs';
 import { runHostedPublicationJourney } from './staging-browser-journey.mjs';
 
 const inputs = {
@@ -12,6 +12,58 @@ const inputs = {
   draftId: 'df9921ba-0b9e-4eba-991f-87e0213f4fc0', expectedSlug: 'disposable-staging-article',
 };
 const sentinel = 'PRIVATE_SESSION_SENTINEL';
+
+const authInput = { projectId: inputs.projectId,
+  runtimeIdentity: 'journal-runtime@journal-stage-123.iam.gserviceaccount.com' };
+
+test('Firebase Auth preflight checks runtime user-lookup access on the exact target project', async () => {
+  const calls = [];
+  const result = await verifyFirebaseAuthPrerequisites({ ...authInput,
+    checkPermission: async request => { calls.push(request); return 'CAN_ACCESS'; },
+  });
+  assert.deepEqual(calls, [{ resource: '//cloudresourcemanager.googleapis.com/projects/journal-stage-123',
+    principalEmail: authInput.runtimeIdentity, permission: 'firebaseauth.users.get' }]);
+  assert.deepEqual(result, { ...authInput, permission: firebaseAuthUserLookupPermission });
+});
+
+test('a passing staging Auth check cannot substitute for production runtime permission', async () => {
+  const production = { projectId: inputs.productionProjectId,
+    runtimeIdentity: 'journal-runtime@journal-prod-123.iam.gserviceaccount.com' };
+  for (const productionAccess of ['CAN_ACCESS', 'CANNOT_ACCESS', 'UNKNOWN_INFO']) {
+    const calls = [];
+    const checkPermission = async request => {
+      calls.push(request);
+      return request.principalEmail === production.runtimeIdentity ? productionAccess : 'CAN_ACCESS';
+    };
+    await verifyFirebaseAuthPrerequisites({ ...authInput, checkPermission });
+    const productionCheck = verifyFirebaseAuthPrerequisites({ ...production, checkPermission });
+    if (productionAccess === 'CAN_ACCESS') await productionCheck;
+    else await assert.rejects(productionCheck, /journal-prod-123.*firebaseauth.users.get/);
+    assert.deepEqual(calls.map(({ resource, principalEmail }) => ({ resource, principalEmail })),
+      [authInput, production].map(({ projectId, runtimeIdentity }) => ({
+        resource: `//cloudresourcemanager.googleapis.com/projects/${projectId}`, principalEmail: runtimeIdentity,
+      })));
+  }
+});
+
+test('Auth permission denials, unknown/missing observations and query errors fail closed', async () => {
+  for (const access of ['CANNOT_ACCESS', 'UNKNOWN_INFO', undefined, null, true, { overallAccessState: 'CAN_ACCESS' }]) {
+    await assert.rejects(verifyFirebaseAuthPrerequisites({ ...authInput, checkPermission: async () => access }), /firebaseauth.users.get/);
+  }
+  await assert.rejects(verifyFirebaseAuthPrerequisites({ ...authInput,
+    checkPermission: async () => { throw new Error(sentinel); },
+  }), error => /Firebase Auth IAM query failed/.test(error.message) && !error.message.includes(sentinel));
+});
+
+test('Auth preflight requires explicit target/runtime and a read-only IAM adapter', async () => {
+  for (const invalid of [{ projectId: undefined }, { projectId: 'project/redirect' },
+    { runtimeIdentity: '' }, { runtimeIdentity: 'user@example.invalid' }]) {
+    await assert.rejects(verifyFirebaseAuthPrerequisites({ ...authInput, ...invalid,
+      checkPermission: async () => assert.fail('Invalid target must not query IAM'),
+    }), /explicit Firebase project ID and runtime service account/);
+  }
+  await assert.rejects(verifyFirebaseAuthPrerequisites(authInput), /Read-only effective Firebase Auth IAM verification/);
+});
 
 const storageInput = {
   bucketName: 'journal-stage-123.firebasestorage.app', projectNumber: '123456789',

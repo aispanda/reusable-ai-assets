@@ -1,5 +1,28 @@
 import { readFile } from 'node:fs/promises';
 
+export const firebaseAuthUserLookupPermission = 'firebaseauth.users.get';
+
+// verifyIdToken(token, true) reads the user's disabled/revocation state. Verify
+// each deployed runtime's effective access without reading users or granting IAM.
+export async function verifyFirebaseAuthPrerequisites({ projectId, runtimeIdentity, checkPermission }) {
+  if (typeof projectId !== 'string' || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(projectId)
+    || typeof runtimeIdentity !== 'string' || !/^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/.test(runtimeIdentity)) {
+    throw new Error('An explicit Firebase project ID and runtime service account are required.');
+  }
+  if (typeof checkPermission !== 'function') throw new Error('Read-only effective Firebase Auth IAM verification is required.');
+  const resource = `//cloudresourcemanager.googleapis.com/projects/${projectId}`;
+  let access;
+  try {
+    access = await checkPermission({ resource, principalEmail: runtimeIdentity, permission: firebaseAuthUserLookupPermission });
+  } catch {
+    throw new Error(`Firebase Auth IAM query failed for runtime ${runtimeIdentity} in ${projectId}; user lookup access is unproven.`);
+  }
+  if (access !== 'CAN_ACCESS') {
+    throw new Error(`Runtime Firebase Auth permission is missing or unproven in ${projectId}: ${firebaseAuthUserLookupPermission}.`);
+  }
+  return { projectId, runtimeIdentity, permission: firebaseAuthUserLookupPermission };
+}
+
 export const requiredImageStoragePermissions = Object.freeze([
   'storage.objects.create', 'storage.objects.get', 'storage.objects.delete',
 ]);

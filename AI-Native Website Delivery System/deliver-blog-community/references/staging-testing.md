@@ -31,6 +31,13 @@ or reused. A successful command alone does not prove these outcomes.
    create/get/delete. Denied, unknown or inaccessible checks fail closed; never
    grant IAM or create a bucket inside a verifier. Check production prerequisites
    read-only too. The hosted upload still proves actual Storage integration.
+   Also call `verifyFirebaseAuthPrerequisites` with that environment's explicit
+   project ID, runtime service account and effective IAM adapter. Revocation-aware
+   `verifyIdToken(token, true)` needs `firebaseauth.users.get`; signing in through
+   Google alone does not prove the server can validate the account. Require
+   `CAN_ACCESS` independently for staging and production; deny, unknown, missing
+   or failed observations stop release. Provision only the necessary user-read
+   permission separately; never grant IAM or disable revocation checks in preflight.
 2. Designate one disposable staging draft owned by the test actor, a fixed slug,
    and a small local image fixture. Never select the first article from a list.
 3. Sign in once in a fresh Playwright browser and save its state to an ignored local

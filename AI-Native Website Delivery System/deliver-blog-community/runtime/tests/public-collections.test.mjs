@@ -22,6 +22,57 @@ test('empty collection detail retains article empty state and returns to catalog
 });
 
 const hostPage = { id: 'guide', title: 'A host guide', excerpt: 'Existing public page.', path: '/guide', collectionIds: ['sample'] };
+const cover = { src: '/images/guides/cover-1.webp', alt: 'A diagram of the learning process' };
+test('host artwork is optional discovery metadata, copied without changing canonical identity', () => {
+  const input = { ...hostPage, art: { ...cover, alt: ` ${cover.alt} ` } };
+  const [article] = validateHostArticles([input]);
+  assert.deepEqual(article.art, cover);
+  assert.equal(article.path, hostPage.path);
+  input.art.src = '/changed.png';
+  assert.equal(article.art.src, cover.src);
+  assert.ok(Object.isFrozen(article.art));
+  assert.deepEqual(visibleHostArticles([article], collections)[0].art, cover);
+  assert.equal(validateHostArticles([hostPage])[0].art, undefined);
+});
+
+test('host artwork rejects unsafe URLs, encoded traversal and missing descriptions', () => {
+  const unsafe = ['https://evil.test/a.png', '//evil.test/a.png', '/\\evil.test/a.png', '/a\\b.png',
+    '/a/../b.png', '/a/./b.png', '/a/%2e%2e/b.png', '/a/%252e%252e/b.png', '/%2f%2fevil.test/a.png',
+    '/a%5cb.png', '/a%00.png', '/a\n.png', '/a\u007f.png', '/a//b.png', '/a.png?redirect=evil', '/a.png#bad',
+    '/a"onerror="bad.png', 'data:image/png;base64,AAAA'];
+  for (const src of unsafe) {
+    assert.throws(() => validateHostArticles([{ ...hostPage, art: { ...cover, src } }]), undefined, src);
+    for (const options of [{ allArticles: true }, { collectionId: 'sample' }]) {
+      const html = renderCollectionsPage({ collections,
+        articles: [{ ...hostPage, slug: hostPage.id, art: { src, alt: 'Cover' } }], ...options });
+      assert.ok(!html.includes('<img'), src);
+    }
+  }
+  for (const art of [null, [], {}, { ...cover, alt: '' }, { ...cover, alt: '   ' }, { ...cover, alt: 'a'.repeat(501) },
+    { ...cover, alt: 'Text\u0000' }, { ...cover, onerror: 'bad' }]) {
+    assert.throws(() => validateHostArticles([{ ...hostPage, art }]));
+  }
+});
+
+test('collection and article cover links preserve destinations and escape accessible descriptions', () => {
+  const art = { ...cover, alt: 'Workflow "steps" & <choices>' };
+  const articles = visibleHostArticles(validateHostArticles([{ ...hostPage, art }]), collections);
+  for (const options of [{ collectionId: 'sample' }, { allArticles: true }]) {
+    const html = renderCollectionsPage({ collections, articles, ...options });
+    assert.ok(html.includes('<a aria-labelledby="catalogue-title-0" href="/guide"><img src="/images/guides/cover-1.webp"'));
+    assert.ok(html.includes('alt="Workflow &quot;steps&quot; &amp; &lt;choices&gt;"'));
+    assert.ok(html.includes('loading="lazy" width="600" height="360"'));
+    assert.ok(html.includes('<h2 id="catalogue-title-0">A host guide</h2></a>'));
+    assert.ok(html.includes('style="object-fit:contain"'));
+    assert.ok(!html.includes('/stories/guide'));
+  }
+  const catalogue = renderCollectionsPage({ collections, articles: [] });
+  assert.ok(catalogue.includes('<a aria-labelledby="catalogue-title-0" href="/topics/sample"><img src="/art.webp"'));
+  const withoutArt = renderCollectionsPage({ collections, articles: [{ ...hostPage, slug: 'guide' }], allArticles: true });
+  assert.ok(!withoutArt.includes('<img'));
+  assert.ok(withoutArt.includes('href="/stories/guide"'));
+});
+
 test('host catalogue rejects unsafe paths, duplicate identity and editable content fields', () => {
   assert.deepEqual(validateHostArticles(), []);
   assert.deepEqual(validateHostArticles([hostPage]), [hostPage]);

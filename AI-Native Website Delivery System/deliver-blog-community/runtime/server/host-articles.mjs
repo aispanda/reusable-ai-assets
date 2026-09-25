@@ -5,12 +5,21 @@ const pathPattern = /^\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$
 const ownedRoots = new Set(['api', 'account', 'studio', 'my-articles', 'write', 'review', 'manage', 'topics', 'stories', 'content-assets']);
 export const isHostArticlePath = path => typeof path === 'string' && path.length <= 240
   && pathPattern.test(path) && !ownedRoots.has(path.split('/')[1]);
+// Catalogue artwork is a same-origin path, never a URL or an encoded redirect.
+// Restrict path segments so browsers and static servers resolve the same resource.
+export const isLocalArtworkPath = path => typeof path === 'string' && path.length <= 1000
+  && /^\/(?:[a-zA-Z0-9._~-]+\/)*[a-zA-Z0-9._~-]+$/.test(path)
+  && path.split('/').every(segment => segment !== '.' && segment !== '..');
+const validArtwork = art => art && typeof art === 'object' && !Array.isArray(art)
+  && Object.keys(art).every(key => ['src', 'alt'].includes(key)) && isLocalArtworkPath(art.src)
+  && typeof art.alt === 'string' && Boolean(art.alt.trim()) && art.alt.length <= 500
+  && !/[\u0000-\u001f\u007f]/.test(art.alt);
 
 export function validateHostArticles(input = []) {
   if (!Array.isArray(input) || input.length > 100) throw new Error('Host articles must be an array of at most 100 public pages.');
   const ids = new Set(), paths = new Set();
   return input.map(row => {
-    const fields = ['id', 'title', 'excerpt', 'path', 'collectionIds', 'readMinutes'];
+    const fields = ['id', 'title', 'excerpt', 'path', 'collectionIds', 'readMinutes', 'art'];
     if (!row || typeof row !== 'object' || Array.isArray(row) || Object.keys(row).some(key => !fields.includes(key))
       || typeof row.id !== 'string' || row.id.length > 80 || !identifier.test(row.id) || ids.has(row.id)
       || typeof row.title !== 'string' || !row.title.trim() || row.title.length > 200
@@ -19,11 +28,13 @@ export function validateHostArticles(input = []) {
       || !Array.isArray(row.collectionIds) || !row.collectionIds.length || row.collectionIds.length > 30
       || row.collectionIds.some(id => typeof id !== 'string' || id.length > 80 || !identifier.test(id) || id === 'none')
       || new Set(row.collectionIds).size !== row.collectionIds.length
-      || (row.readMinutes !== undefined && (!Number.isInteger(row.readMinutes) || row.readMinutes < 1 || row.readMinutes > 240))) {
+      || (row.readMinutes !== undefined && (!Number.isInteger(row.readMinutes) || row.readMinutes < 1 || row.readMinutes > 240))
+      || (row.art !== undefined && !validArtwork(row.art))) {
       throw new Error('Host articles require unique IDs and public paths, title, excerpt and collection IDs; only discovery metadata is allowed.');
     }
     ids.add(row.id); paths.add(row.path);
-    return Object.freeze({ ...row, title: row.title.trim(), excerpt: row.excerpt.trim(), collectionIds: Object.freeze([...row.collectionIds]) });
+    return Object.freeze({ ...row, title: row.title.trim(), excerpt: row.excerpt.trim(), collectionIds: Object.freeze([...row.collectionIds]),
+      ...(row.art ? { art: Object.freeze({ src: row.art.src, alt: row.art.alt.trim() }) } : {}) });
   });
 }
 

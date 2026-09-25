@@ -160,7 +160,7 @@ const handleApi = async (request, response, url) => {
   }
   if (url.pathname === '/api/content/articles' && ['GET', 'HEAD'].includes(request.method)) {
     const { articles } = await loadPublicCatalogue(false);
-    json(response, 200, { articles: articles.map(({ slug, title, excerpt, layout, collectionIds, readMinutes, source, path }) => ({ slug, title, excerpt, readMinutes, collectionIds, layout: articleLayout(layout), ...(source === 'host' ? { source, path } : {}) })) });
+    json(response, 200, { articles: articles.map(({ slug, title, excerpt, layout, collectionIds, readMinutes, source, path, art }) => ({ slug, title, excerpt, readMinutes, collectionIds, layout: articleLayout(layout), ...(source === 'host' ? { source, path, ...(art ? { art } : {}) } : {}) })) });
     return;
   }
   requireSameOrigin(request);

@@ -12,7 +12,8 @@ test('host articles share discovery across the API and collections without ownin
   const db = { collection: name => name === 'contentCollections'
     ? { doc: () => ({ get: async () => ({ exists: true, data: () => registry }) }) }
     : { orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) } };
-  const hostArticles = [{ id: 'principles', title: 'Existing principles', excerpt: 'Useful ideas.', path: '/principles', collectionIds: ['building'] }];
+  const art = { src: '/images/principles.webp', alt: 'A visual guide to building principles' };
+  const hostArticles = [{ id: 'principles', title: 'Existing principles', excerpt: 'Useful ideas.', path: '/principles', collectionIds: ['building'], art }];
   const server = createBlogServer({ db, auth: {}, bucket: {}, distRoot: '.', siteOrigin: 'http://127.0.0.1',
     runtimeConfig: { firebase: { projectId: 'demo-host-articles' } }, hostArticles });
   t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
@@ -23,9 +24,12 @@ test('host articles share discovery across the API and collections without ownin
   const { articles } = await api.json();
   assert.equal(articles.length, 1); assert.equal(articles[0].path, '/principles');
   assert.deepEqual(articles[0].collectionIds, ['building']); assert.equal(articles[0].source, 'host');
+  assert.deepEqual(articles[0].art, art);
   for (const path of ['/topics/building', '/stories']) {
     const response = await fetch(origin + path); assert.equal(response.status, 200);
     const html = await response.text(); assert.ok(html.includes('href="/principles"')); assert.ok(!html.includes('/stories/principles'));
+    assert.ok(html.includes('<a aria-labelledby="catalogue-title-0" href="/principles"><img src="/images/principles.webp"'));
+    assert.ok(html.includes('alt="A visual guide to building principles"'));
   }
   registry.collections[0].archived = true;
   assert.deepEqual((await (await fetch(origin + '/api/content/articles')).json()).articles, []);

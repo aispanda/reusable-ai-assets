@@ -29,7 +29,11 @@ Production smoke is read-only; isolated staging owns destructive lifecycle tests
 
 When the host already publishes static articles, pass consumer-owned `hostArticles`
 metadata to `createBlogServer`: `{ id, title, excerpt, path, collectionIds,
-readMinutes? }`. The path is a validated local canonical route. These records join
+readMinutes?, art?: { src, alt } }`. The path is a validated local canonical route.
+Optional artwork uses a local image path and a non-empty description, and appears
+on the article's discovery card linked to that same route. Paths cannot contain URL
+schemes, encoded segments, traversal, query strings or fragments. Artwork files and
+their accessibility descriptions remain consumer-owned. These records join
 public discovery and collection counts only when their collections are active;
 they also prevent deletion of a referenced collection. Their content and rendering
 remain with the host. This is catalogue integration, not a migration into editable

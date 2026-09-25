@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { createStartupStorageBucket, loadStartupConfig } from '../server/startup-config.mjs';
 import { createStudioImageAsset } from '../server/studio-content-assets.mjs';
 import { createBlogServer } from '../server/server.mjs';
+import { SUPPORTED_PUBLICATION_VERSION_TUPLES } from '../server/content-publishing.mjs';
+import { sha256, stableJson } from '../server/studio-content-document.mjs';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,7 +12,7 @@ import { join } from 'node:path';
 test('public collection routes retain each host name and legacy branding defaults', async t => {
   const db = { collection: name => name === 'contentCollections'
     ? { doc: () => ({ get: async () => ({ exists: true, data: () => ({ revision: 1, collections: [{ id: 'building', title: 'Building', order: 1 }] }) }) }) }
-    : { orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) } };
+    : { orderBy: () => ({ get: async () => ({ docs: [] }) }) } };
   for (const [options, configName, expected] of [
     [{ siteName: 'Cedar & Fern' }, 'Ignored legacy name', 'Cedar &amp; Fern'],
     [{ siteName: 'Harbor Journal' }, undefined, 'Harbor Journal'],
@@ -42,7 +44,7 @@ test('host articles share discovery across the API and collections without ownin
   const registry = { revision: 1, collections: [{ id: 'building', title: 'Building', order: 1 }] };
   const db = { collection: name => name === 'contentCollections'
     ? { doc: () => ({ get: async () => ({ exists: true, data: () => registry }) }) }
-    : { orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) } };
+    : { orderBy: () => ({ get: async () => ({ docs: [] }) }) } };
   const art = { src: '/images/principles.webp', alt: 'A visual guide to building principles' };
   const hostArticles = [{ id: 'principles', title: 'Existing principles', excerpt: 'Useful ideas.', path: '/principles', collectionIds: ['building'], art }];
   const server = createBlogServer({ db, auth: {}, bucket: {}, distRoot: '.', siteOrigin: 'http://127.0.0.1',
@@ -65,6 +67,32 @@ test('host articles share discovery across the API and collections without ownin
   registry.collections[0].archived = true;
   assert.deepEqual((await (await fetch(origin + '/api/content/articles')).json()).articles, []);
   assert.equal((await fetch(origin + '/topics/building')).status, 404);
+});
+
+test('complete published catalogue exceeds teaser limits and exposes no draft or identity fields', async t => {
+  const records = Array.from({ length: 101 }, (_, index) => {
+    const id = `release-${index}`;
+    const base = { ...SUPPORTED_PUBLICATION_VERSION_TUPLES[0], id, releaseId: id, slug: `article-${index}`,
+      title: `Public article ${index}`, excerpt: 'Public summary', tags: [], publishedAt: '2026-01-01T00:00:00.000Z',
+      sourcePayloadId: `${id}_source`, bodyPayloadId: `${id}_body`, pagePayloadId: `${id}_page`,
+      sourceBytes: 1, bodyHtmlBytes: 1, renderedPageBytes: 1, ownerUid: 'private-identity', body: 'private-body' };
+    return { ...base, manifestSha256: sha256(stableJson(base)) };
+  });
+  const db = { collection: name => {
+    assert.equal(name, 'publishedContent', 'Public catalogue must never read private drafts or profiles');
+    return { orderBy: () => ({ get: async () => ({ docs: records.map(row => ({ data: () => row })) }),
+      limit: count => ({ get: async () => ({ docs: records.slice(0, count).map(row => ({ data: () => row })) }) }) }) };
+  } };
+  const server = createBlogServer({ db, auth: {}, bucket: {}, distRoot: '.', siteOrigin: 'http://127.0.0.1',
+    runtimeConfig: { firebase: { projectId: 'demo-catalogue-boundary' } } });
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/api/content/articles`);
+  assert.equal(response.status, 200);
+  const { articles } = await response.json();
+  assert.equal(articles.length, 101);
+  assert.equal(articles[100].title, 'Public article 100');
+  assert.ok(articles.every(row => row.publishedAt === '2026-01-01T00:00:00.000Z' && !('ownerUid' in row) && !('body' in row)));
 });
 
 test('historical comments bootstrap current config while shared chunks preserve exports', async () => {

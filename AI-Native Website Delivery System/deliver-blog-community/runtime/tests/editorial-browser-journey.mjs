@@ -9,8 +9,9 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import * as client from 'firebase/app';
 import * as clientAuth from 'firebase/auth';
+import { canonicalContentFields, createContentDocument } from '../server/studio-content-document.mjs';
 
-export async function runEditorialBrowserJourney({ origin, packageSha256, artifactDirectory }) {
+export async function runEditorialBrowserJourney({ origin, packageSha256, artifactDirectory, hostArticles = [] }) {
   assert.match(origin, /^http:\/\/127\.0\.0\.1:[0-9]+$/);
   assert.match(packageSha256, /^[a-f0-9]{64}$/);
   assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST, '127.0.0.1:9099');
@@ -56,6 +57,37 @@ export async function runEditorialBrowserJourney({ origin, packageSha256, artifa
     await expect(admin.page.locator('[data-content-library]')).toBeVisible();
     await expect(admin.page.locator('[data-title]')).toBeHidden();
     checks.push('Restored account stays on settings; My articles and bare studio open the list, never an editor');
+    const scope = admin.page.locator('[data-library-scope]');
+    const library = admin.page.locator('[data-library-list]');
+    const collectionFilter = admin.page.locator('[data-article-collection-filter]');
+    const publishedRow = title => library.locator('.studio-library-row').filter({
+      has: admin.page.getByRole('link', { name: `Read ${title}`, exact: true }),
+    });
+    const expectReadOnly = async (title, path) => {
+      const row = publishedRow(title);
+      await expect(row).toHaveCount(1);
+      await expect(row.getByRole('link', { name: `Read ${title}`, exact: true })).toHaveAttribute('href', path);
+      await expect(row.getByRole('link', { name: `View ${title}`, exact: true })).toHaveAttribute('href', path);
+      await expect(row.locator('a[href^="/write"], .studio-row-menu, button')).toHaveCount(0);
+    };
+    await expect(scope).toBeVisible();
+    await expect(scope).toHaveValue('site');
+    await expect(admin.page.locator('[data-library-title]')).toHaveText('All site articles');
+    for (const article of hostArticles) {
+      await expectReadOnly(article.title, article.path);
+      await collectionFilter.selectOption(article.collectionIds[0]);
+      await expectReadOnly(article.title, article.path);
+      for (const other of hostArticles.filter(row => !row.collectionIds.includes(article.collectionIds[0]))) {
+        await expect(publishedRow(other.title)).toHaveCount(0);
+      }
+      await collectionFilter.selectOption('');
+    }
+    await scope.selectOption('mine');
+    await expect(admin.page.locator('[data-library-title]')).toHaveText('My articles');
+    await expect(library.locator('.studio-library-row')).toHaveCount(0);
+    await scope.selectOption('site');
+    for (const article of hostArticles) await expectReadOnly(article.title, article.path);
+    checks.push('Administrator defaults to All site articles; own scope stays separate and configured host pages have canonical, read-only links and correct collection filters');
     await admin.page.getByRole('link', { name: 'Manage collections', exact: true }).click();
     await expect(admin.page.getByRole('heading', { name: 'Collections', exact: true })).toBeVisible();
     await admin.page.locator('[data-new-collection]').click();
@@ -81,6 +113,8 @@ export async function runEditorialBrowserJourney({ origin, packageSha256, artifa
     checks.push('User invitations are discoverable and mobile users page fits');
     const author = await actor('author');
     await expect(author.page.getByRole('link', { name: 'Manage users', exact: true })).toHaveCount(0);
+    await expect(author.page.locator('[data-library-scope]')).toBeHidden();
+    for (const article of hostArticles) await expect(author.page.locator('[data-library-list]')).not.toContainText(article.title);
     await author.page.locator('[data-new-article]').first().click();
     await expect(author.page.locator('[data-studio]')).toHaveAttribute('data-studio-ready', 'true');
     await expect(author.page.locator('[data-editor-workspace]')).not.toHaveAttribute('inert', '');
@@ -129,6 +163,43 @@ export async function runEditorialBrowserJourney({ origin, packageSha256, artifa
     assert.ok(html.includes('Reusable browser journey') && html.includes('A reader asks a careful question.'));
     assert.ok(html.includes('data-article-layout="study-reflection"'));
     checks.push('Administrator reviews without editing and publishes the submitted revision; anonymous page contains exact title, prose and layout');
+    // Change only this emulator author's working revision. The live snapshot
+    // must continue to supply the administrator's public title and collection.
+    const articleDraftId = new URL(author.page.url()).searchParams.get('draft');
+    assert.ok(articleDraftId, 'The disposable author editor must identify its draft');
+    const privateTitle = 'Private working title ' + fixture;
+    const privateBody = 'Unsubmitted private refinement ' + fixture;
+    const refined = createContentDocument({ type: 'doc', content: [{ type: 'paragraph', content: [
+      { type: 'text', text: privateBody },
+    ] }] }, 'study-reflection');
+    const draftRef = db.collection('contentDrafts').doc(articleDraftId);
+    const publishedDraft = (await draftRef.get()).data();
+    assert.equal(publishedDraft.ownerUid, author.uid);
+    await draftRef.update({
+      ...canonicalContentFields(refined), title: privateTitle, excerpt: privateBody,
+      tags: 'Private working classification', publicationStatus: 'published-with-changes', reviewStatus: 'draft',
+      revision: publishedDraft.revision + 1, updatedAt: new Date(Date.now() + 1000).toISOString(),
+    });
+    await admin.page.goto(origin + '/my-articles');
+    await expect(scope).toHaveValue('site');
+    await expectReadOnly('Reusable browser journey', '/stories/' + fixture);
+    await expect(library).not.toContainText(privateTitle);
+    await expect(library).not.toContainText(privateBody);
+    await collectionFilter.selectOption(fixture);
+    await expectReadOnly('Reusable browser journey', '/stories/' + fixture);
+    await collectionFilter.selectOption('__unassigned__');
+    await expect(publishedRow('Reusable browser journey')).toHaveCount(0);
+    await collectionFilter.selectOption('');
+    await scope.selectOption('mine');
+    await expect(library.locator('.studio-library-row')).toHaveCount(0);
+    await scope.selectOption('site');
+    await author.page.goto(origin + '/my-articles');
+    await expect(author.page.locator('[data-library-scope]')).toBeHidden();
+    await expect(author.page.locator('[data-library-list]')).toContainText(privateTitle);
+    await author.page.locator('[data-article-collection-filter]').selectOption('__unassigned__');
+    await expect(author.page.locator('[data-library-list]')).toContainText(privateTitle);
+    assert.equal(await (await fetch(origin + '/stories/' + fixture)).text(), html, 'Private working changes leave the live snapshot unchanged');
+    checks.push('Administrator sees another author’s published metadata, never private refinements; live collection assignment stays stable while the author retains their own unassigned working revision');
     // Emulate frozen HTML from an earlier host release, without rewriting any
     // stored publication. Exercise the real host asset route and module graph.
     const commentsEntry = html.match(/src="(\/_astro\/Comments\.[^"]+\.js)"/)?.[1];
@@ -169,6 +240,36 @@ export async function runEditorialBrowserJourney({ origin, packageSha256, artifa
     await expect(anonymousPage.locator('[data-comments-count]')).toHaveText('0 comments');
     assert.equal(await (await fetch(historicalUrl)).text(), html, 'Serving retired scripts does not mutate the frozen publication');
     checks.push('Historical comments script resolves with no-cache; restored account can compose without sign-in, anonymous reader cannot, frozen HTML stays unchanged');
+    // Seed the already-tested offline state only for this disposable fixture.
+    // This proves library scope, not the unpublish endpoint or lifecycle itself.
+    const publicationIndex = db.collection('contentPublicationIndex').doc(articleDraftId);
+    const lastPublication = (await publicationIndex.get()).data();
+    assert.ok(lastPublication.releaseId, 'Offline administration needs the retained release');
+    const offline = db.batch();
+    offline.update(draftRef, { publicationStatus: 'unpublished', updatedAt: new Date(Date.now() + 2000).toISOString() });
+    offline.update(publicationIndex, { state: 'unpublished', releaseId: lastPublication.releaseId });
+    offline.delete(db.collection('publishedContent').doc(fixture));
+    await offline.commit();
+    await admin.page.goto(origin + '/my-articles');
+    await expect(admin.page.locator('[data-content-library]')).toBeVisible();
+    await expect(scope).toHaveValue('site');
+    await admin.page.locator('[data-filter="unpublished"]').first().click();
+    const offlineRow = library.locator('.studio-library-row').filter({
+      has: admin.page.getByRole('heading', { name: 'Reusable browser journey', exact: true }),
+    });
+    await expect(offlineRow).toHaveCount(1);
+    await expect(library).not.toContainText(privateTitle);
+    await expect(library).not.toContainText(privateBody);
+    await expect(offlineRow.locator('a[href^="/write"]')).toHaveCount(0);
+    await offlineRow.locator('.studio-row-menu summary').click();
+    await expect(offlineRow.getByRole('button', { name: 'Move unpublished article to trash', exact: true })).toBeVisible();
+    await offlineRow.locator('.studio-row-menu summary').click();
+    await scope.selectOption('mine');
+    await expect(library.locator('.studio-library-row')).toHaveCount(0);
+    await expect(admin.page.locator('[data-unpublished-count]')).toHaveText('0');
+    await scope.selectOption('site');
+    await expect(offlineRow).toHaveCount(1);
+    checks.push('Offline administrator actions use last-public metadata in All site articles; My articles excludes another author’s retained article and its count');
     assert.deepEqual(errors, []);
     return { packageSha256, checks, authentication: 'Emulator session; production Google OAuth remains a separate hosted check' };
   } finally {

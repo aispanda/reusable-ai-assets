@@ -321,6 +321,7 @@ import site from '@/site';
             <button class="studio-button" type="button" data-new-article>＋ New article</button>
           </header>
           <div class="studio-library-filters">
+            <label data-library-scope-label hidden>Show <select data-library-scope><option value="site">All site articles</option><option value="mine">My articles</option></select></label>
             <label>Search article titles <input type="search" data-article-search placeholder="Search your permitted articles" /></label>
             <label>Collection <select data-article-collection-filter disabled><option value="">All collections</option></select></label>
           </div>
@@ -580,7 +581,7 @@ import site from '@/site';
       import { normalizeYouTubeUrl } from '@/scripts/studio-youtube.mjs';
       import { createStudioImageOperationCoordinator } from '@/scripts/studio-image-operations.mjs';
       import { captureStudioPreviewState, hydratePrivatePreviewImages, isStudioPreviewStateCurrent } from '@/scripts/studio-preview-operations.mjs';
-      import { studioPublicUrl } from '@/scripts/studio-library-operations.mjs';
+      import { studioPublicUrl, siteArticleIndex, type PublicArticleSummary } from '@/scripts/studio-library-operations.mjs';
       import { publicationOrigin } from '@/scripts/firebase-client';
       import {
         closeToolbarMenuAndFocusSummary,
@@ -709,6 +710,8 @@ import site from '@/site';
         publicPath?: string;
         archivedAt?: string;
         administrationOnly?: boolean;
+        viewOnly?: boolean;
+        source?: 'host' | 'published';
         tags?: string;
       };
 
@@ -737,6 +740,13 @@ import site from '@/site';
       const imageOperations = createStudioImageOperationCoordinator();
       const draftRecords = new Map<string, DraftState>();
       const administrativeRecords = new Map<string, DocumentSummary>();
+      let publishedArticles: PublicArticleSummary[] = [];
+      const libraryScope = document.querySelector<HTMLSelectElement>('[data-library-scope]')!;
+      const isSiteLibrary = studioBackend.role === 'administrator' && ['/my-articles', '/studio'].includes(window.location.pathname);
+      document.querySelector<HTMLElement>('[data-library-scope-label]')!.hidden = !isSiteLibrary;
+      const showingSiteArticles = () => isSiteLibrary && libraryScope.value === 'site';
+      const showingAdministrativeArticles = () => studioBackend.role === 'administrator' && (!isSiteLibrary || showingSiteArticles());
+      const collectionTitles = new Map<string, string>();
 
       if (persistenceNote) {
         persistenceNote.textContent = canPublish ? 'Publish your own articles or review an author’s submitted revision.' : 'Your drafts stay private until you submit for review. A Publisher can then publish them.';
@@ -895,7 +905,10 @@ import site from '@/site';
       };
 
       const loadCloudDrafts = async () => {
-        const remoteDrafts = await studioBackend.listDrafts();
+        const [remoteDrafts, catalogue] = await Promise.all([
+          studioBackend.listDrafts(), isSiteLibrary ? studioBackend.listPublishedArticles() : [],
+        ]);
+        publishedArticles = catalogue;
         draftRecords.clear();
         administrativeRecords.clear();
         for (const [id, record] of Object.entries(remoteDrafts)) {
@@ -931,11 +944,13 @@ import site from '@/site';
           });
         }
 
-        if (studioBackend.role === 'administrator' && window.location.pathname !== '/review'
+        if (showingAdministrativeArticles() && window.location.pathname !== '/review'
           && ['unpublished', 'archived'].includes(currentFilter)) {
           for (const [id, item] of administrativeRecords) indexed.set(id, item);
         }
-        return [...indexed.values()].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+        const owned = [...indexed.values()];
+        return showingSiteArticles() ? siteArticleIndex(owned, publishedArticles)
+          : owned.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
       };
 
       const renderDocumentIndex = () => {
@@ -948,7 +963,7 @@ import site from '@/site';
         allCount.textContent = String(active.filter(item => !item.administrationOnly).length);
         draftCount.textContent = String(drafts.length);
         publishedCount.textContent = String(published.length);
-        const additionalAdministrativeRows = window.location.pathname === '/review' ? []
+        const additionalAdministrativeRows = window.location.pathname === '/review' || !showingAdministrativeArticles() ? []
           : [...administrativeRecords.values()].filter(item => !documents.some(document => document.id === item.id));
         unpublishedCount.textContent = String(unpublished.length + additionalAdministrativeRows.filter(item => !item.archivedAt).length);
         archivedCount.textContent = String(archived.length + additionalAdministrativeRows.filter(item => item.archivedAt).length);
@@ -970,7 +985,7 @@ import site from '@/site';
               ? 'Unpublished'
               : currentFilter === 'archived'
                 ? 'Trash'
-                : 'My articles';
+                : showingSiteArticles() ? 'All site articles' : 'My articles';
         documentList.replaceChildren();
 
         if (!visible.length) {
@@ -1001,7 +1016,7 @@ import site from '@/site';
           const itemStatus = document.createElement('small');
           itemStatus.textContent = item.archivedAt ? 'In trash' : statusLabel(item.publicationStatus);
           itemMeta.append(itemStatus);
-          if (item.publicPath && hasLiveVersion(item)) {
+          if (item.publicPath && hasLiveVersion(item) && !item.viewOnly) {
             const editLink = document.createElement('a');
             editLink.className = 'studio-document-edit';
             editLink.href = editPath;
@@ -1021,6 +1036,7 @@ import site from '@/site';
         const state = readDocumentState(item);
         if (!state) throw new Error('The cloud draft could not be loaded.');
         const result = await studioBackend.unpublishDraft(item.id, state.updatedAt);
+        publishedArticles = publishedArticles.filter(article => (article.source === 'host' ? article.path : `/stories/${article.slug}`) !== item.publicPath);
         const nextState = { ...state, publicationStatus: 'unpublished' as const, updatedAt: result.updatedAt };
         draftRecords.set(item.id, nextState);
         if (item.id === draftId) {
@@ -1128,7 +1144,8 @@ import site from '@/site';
                 : active;
         const search = document.querySelector<HTMLInputElement>('[data-article-search]')!.value.trim().toLocaleLowerCase();
         const collectionId = document.querySelector<HTMLSelectElement>('[data-article-collection-filter]')!.value;
-        const visible = statusRows.filter(item => item.title.toLocaleLowerCase().includes(search) && (!collectionId || (item.tags ?? draftRecords.get(item.id)?.tags ?? '').split(',').map(tag => tag.trim()).includes(`collection:${collectionId}`)));
+        const itemCollections = (item: DocumentSummary) => (item.tags ?? draftRecords.get(item.id)?.tags ?? '').split(',').map(tag => tag.trim()).filter(tag => tag.startsWith('collection:')).map(tag => tag.slice(11)).filter(id => id && id !== 'none');
+        const visible = statusRows.filter(item => item.title.toLocaleLowerCase().includes(search) && (!collectionId || (collectionId === '__unassigned__' ? !itemCollections(item).length : itemCollections(item).includes(collectionId))));
         const reviewPage = window.location.pathname === '/review';
 
         const heading = currentFilter === 'draft'
@@ -1139,9 +1156,9 @@ import site from '@/site';
               ? 'Unpublished articles'
               : currentFilter === 'archived'
                 ? 'Trash'
-                : reviewPage ? 'Submitted for review' : 'My articles';
+                : reviewPage ? 'Submitted for review' : showingSiteArticles() ? 'All site articles' : 'My articles';
         libraryTitle.textContent = heading;
-        const administrativeView = studioBackend.role === 'administrator' && ['unpublished', 'archived'].includes(currentFilter);
+        const administrativeView = showingAdministrativeArticles() && ['unpublished', 'archived'].includes(currentFilter);
         const guidance = administrativeView ? 'Manage offline articles using their last published titles. Other authors’ private revisions remain private.' : reviewPage ? 'Only explicitly submitted revisions are available for review.' : currentFilter === 'published'
           ? 'Select a title to read the live article; Edit draft opens unpublished work.'
           : currentFilter === 'draft'
@@ -1151,13 +1168,15 @@ import site from '@/site';
               : currentFilter === 'archived'
                 ? 'Drafts in trash are retained for recovery. Restore a draft to edit or publish it.'
               : 'Published titles open the live article; Edit draft opens unpublished work.';
-        librarySummary.textContent = `${visible.length} of ${documents.length} permitted articles · ${guidance}`;
+        const scopeGuidance = showingSiteArticles() && ['all', 'published'].includes(currentFilter)
+          ? 'Published articles across this site and your own drafts. View-only articles cannot be edited here.' : guidance;
+        librarySummary.textContent = `${visible.length} of ${documents.length} articles · ${scopeGuidance}`;
         libraryList.replaceChildren();
 
         if (!visible.length) {
           const empty = document.createElement('div');
           empty.className = 'studio-library-empty';
-          empty.innerHTML = '<h2>Nothing here yet</h2><p>Create a new article to begin.</p>';
+          empty.innerHTML = search || collectionId ? '<h2>No matching articles</h2><p>Try another collection or clear the search.</p>' : '<h2>Nothing here yet</h2><p>Create a new article to begin.</p>';
           libraryList.append(empty);
           return;
         }
@@ -1188,6 +1207,14 @@ import site from '@/site';
             itemTitle.textContent = item.title;
           }
           identity.append(itemTitle);
+          const collectionNote = document.createElement('small');
+          collectionNote.textContent = itemCollections(item).map(id => collectionTitles.get(id) || id).join(' · ') || 'Unassigned';
+          identity.append(collectionNote);
+          if (item.viewOnly) {
+            const note = document.createElement('small');
+            note.textContent = item.source === 'host' ? 'Published page · managed in the website' : 'Published article · view only';
+            identity.append(note);
+          }
           const authorName = draftRecords.get(item.id)?.authorName;
           if (authorName) { const byline = document.createElement('small'); byline.textContent = `By ${authorName}`; identity.append(byline); }
 
@@ -1197,8 +1224,10 @@ import site from '@/site';
           status.textContent = item.archivedAt ? 'In trash' : [statusLabel(item.publicationStatus), editorialStatus === 'submitted' ? 'Submitted for review' : editorialStatus === 'returned' ? 'Returned · feedback available' : ''].filter(Boolean).join(' · ');
 
           const updated = document.createElement('time');
-          updated.dateTime = item.updatedAt;
-          updated.textContent = new Date(item.updatedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+          if (item.updatedAt && Number.isFinite(Date.parse(item.updatedAt))) {
+            updated.dateTime = item.updatedAt;
+            updated.textContent = new Date(item.updatedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+          } else { updated.textContent = '—'; updated.setAttribute('aria-label', 'Update date unavailable'); }
 
           const editLink = document.createElement('a');
           editLink.className = 'studio-library-edit-link';
@@ -1208,6 +1237,15 @@ import site from '@/site';
 
           const actions = document.createElement('div');
           actions.className = 'studio-library-actions';
+          if (item.viewOnly) {
+            editLink.href = item.publicPath!;
+            editLink.textContent = 'View article';
+            editLink.setAttribute('aria-label', `View ${item.title}`);
+            actions.append(editLink);
+            row.append(identity, status, updated, actions);
+            libraryList.append(row);
+            continue;
+          }
           const menu = document.createElement('details');
           menu.className = 'studio-row-menu';
           const menuTrigger = document.createElement('summary');
@@ -2225,12 +2263,18 @@ import site from '@/site';
       const articleCollection = document.querySelector<HTMLSelectElement>('[data-article-collection-filter]')!;
       articleSearch.addEventListener('input', renderContentLibrary);
       articleCollection.addEventListener('change', renderContentLibrary);
+      libraryScope.addEventListener('change', () => showContentLibrary(currentFilter));
       document.addEventListener('editorial-collections-loaded', event => {
         const selected = articleCollection.value;
-        articleCollection.replaceChildren(new Option('All collections', ''));
-        for (const collection of (event as CustomEvent).detail) articleCollection.add(new Option(collection.title + (collection.archived ? ' (archived)' : ''), collection.id));
+        articleCollection.replaceChildren(new Option('All collections', ''), new Option('Unassigned', '__unassigned__'));
+        collectionTitles.clear();
+        for (const collection of (event as CustomEvent).detail) {
+          collectionTitles.set(collection.id, collection.title);
+          articleCollection.add(new Option(collection.title + (collection.archived ? ' (archived)' : ''), collection.id));
+        }
         articleCollection.value = selected;
         articleCollection.disabled = false;
+        if (!contentLibrary.hidden) renderContentLibrary();
       });
       if (readOnlyDraft) {
         toolbar.hidden = true;

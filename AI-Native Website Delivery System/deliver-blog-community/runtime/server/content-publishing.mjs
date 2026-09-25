@@ -1274,7 +1274,10 @@ export const loadPublishedArticle = async (db, slug) => {
 };
 
 export const listPublishedArticles = async (db, limit = 100) => {
-  const snapshot = await db.collection('publishedContent').orderBy('publishedAt', 'desc').limit(limit).get();
+  const query = db.collection('publishedContent').orderBy('publishedAt', 'desc');
+  // A complete catalogue must agree with collection totals. Teasers can keep
+  // their bounded default; callers requesting the complete index pass null.
+  const snapshot = await (limit === null ? query : query.limit(limit)).get();
   return snapshot.docs
     .map((document) => document.data())
     .map((article) => validReleaseManifest(article, article?.slug))

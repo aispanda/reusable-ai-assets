@@ -82,6 +82,7 @@ export type StudioBackend = {
   role: StudioRole;
   accountEmail?: string;
   listDrafts: () => Promise<Record<string, StudioDraftRecord>>;
+  listPublishedArticles: () => Promise<import('./studio-library-operations.mjs').PublicArticleSummary[]>;
   saveDraft: (id: string, draft: StudioDraftRecord, expectedUpdatedAt?: string, checkpoint?: boolean) => Promise<{
     updatedAt: string;
     revision: number;
@@ -379,6 +380,12 @@ const createCloudBackend = (user: User, role: EditorialRole) => {
     uid: user.uid,
     role,
     accountEmail: user.email ?? undefined,
+    listPublishedArticles: async () => {
+      const response = await fetch('/api/content/articles', { cache: 'no-store' });
+      const payload = await response.json();
+      if (!response.ok || !Array.isArray(payload.articles)) throw new Error('Published site articles could not be loaded. Reload to try again.');
+      return payload.articles;
+    },
     listDrafts: async () => {
       const response = await fetch('/api/content/editorial/drafts', {
         headers: { Authorization: `Bearer ${await user.getIdToken()}` }, cache: 'no-store',

@@ -42,6 +42,16 @@ they also prevent deletion of a referenced collection. Their content and renderi
 remain with the host. This is catalogue integration, not a migration into editable
 drafts. Do not create duplicate publication records to make static articles visible.
 
+The administrator's Articles workspace defaults to **All site articles**: published
+catalogue entries plus their own drafts. **My articles** retains the personal
+workspace. Public-only rows provide View links and no draft mutations; host pages
+are explicitly labelled as managed in the website. Live titles and collection
+assignments are used in the site view even if an owned draft has pending changes.
+Unassigned articles remain visible and filterable. Private drafts from other
+authors never enter the catalogue. Review submissions is a separate workflow.
+Verify this workspace as well as public collection cards during host adoption;
+matching collection counts alone does not establish editorial discoverability.
+
 For same-image staging and production, build with `BLOG_PRODUCTION_PROJECT_ID`.
 Pass actual environment/project facts to `loadBuiltProductionProfile`. Staging also
 requires a consumer-owned `BLOG_APPROVED_STAGING_PROFILE` file containing exactly

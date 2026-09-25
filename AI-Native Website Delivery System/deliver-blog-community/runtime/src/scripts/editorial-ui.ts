@@ -20,7 +20,7 @@ export function initializeEditorialUI({ backend, draftId, stored, readOnly, save
   const submitted = stored?.reviewStatus === 'submitted';
   const sidebar = document.querySelector('.studio-nav');
   const navigation = document.createDocumentFragment();
-  for (const [title, href, allowed] of [['Home', '/', true], ['My articles', '/my-articles', true], ['Review submissions', '/review', publisher], ['Manage collections', '/manage/collections', backend.role === 'administrator'], ['Manage users', '/manage/users', backend.role === 'administrator'], ['Explore collections', '/topics', true]] as const) {
+  for (const [title, href, allowed] of [['Home', '/', true], [backend.role === 'administrator' ? 'Articles' : 'My articles', '/my-articles', true], ['Review submissions', '/review', publisher], ['Manage collections', '/manage/collections', backend.role === 'administrator'], ['Manage users', '/manage/users', backend.role === 'administrator'], ['Explore collections', '/topics', true]] as const) {
     if (!allowed) continue;
     const link = document.createElement('a'); link.href = href; link.textContent = title; link.style.cssText = 'display:block;padding:12px;color:inherit;text-decoration:none';
     if (window.location.pathname === href) link.setAttribute('aria-current', 'page');

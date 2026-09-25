@@ -36,7 +36,7 @@ const HOST_ARTICLES = validateHostArticles(hostArticles);
 const loadPublicCatalogue = async (includeCollections = true) => {
   const [{ collections }, published] = await Promise.all([
     includeCollections || HOST_ARTICLES.length ? listCollections(db) : { collections: [] },
-    listPublishedArticles(db),
+    listPublishedArticles(db, null),
   ]);
   const articles = published.map(row => ({ ...row, collectionIds: articleCollectionIds(row.tags, row.slug) }));
   return { collections, articles: [...articles, ...visibleHostArticles(HOST_ARTICLES, collections, new Set(published.map(row => row.slug)))] };
@@ -160,7 +160,7 @@ const handleApi = async (request, response, url) => {
   }
   if (url.pathname === '/api/content/articles' && ['GET', 'HEAD'].includes(request.method)) {
     const { articles } = await loadPublicCatalogue(false);
-    json(response, 200, { articles: articles.map(({ slug, title, excerpt, layout, collectionIds, readMinutes, source, path, art }) => ({ slug, title, excerpt, readMinutes, collectionIds, layout: articleLayout(layout), ...(source === 'host' ? { source, path, ...(art ? { art } : {}) } : {}) })) });
+    json(response, 200, { articles: articles.map(({ slug, title, excerpt, layout, collectionIds, readMinutes, publishedAt, source, path, art }) => ({ slug, title, excerpt, readMinutes, collectionIds, publishedAt, layout: articleLayout(layout), ...(source === 'host' ? { source, path, ...(art ? { art } : {}) } : {}) })) });
     return;
   }
   requireSameOrigin(request);

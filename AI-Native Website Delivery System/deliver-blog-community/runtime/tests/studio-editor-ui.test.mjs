@@ -10,7 +10,44 @@ import {
 } from '../src/scripts/studio-toolbar-navigation.mjs';
 import { createStudioImageOperationCoordinator } from '../src/scripts/studio-image-operations.mjs';
 import { captureStudioPreviewState, isStudioPreviewStateCurrent } from '../src/scripts/studio-preview-operations.mjs';
-import { studioPublicUrl } from '../src/scripts/studio-library-operations.mjs';
+import { studioPublicUrl, siteArticleIndex } from '../src/scripts/studio-library-operations.mjs';
+
+test('site library joins published pages and own drafts without counterfeit edit rights or dates', () => {
+  const own = [{ id: 'own', title: 'My private retitle', updatedAt: '2026-01-03T00:00:00.000Z', publicationStatus: 'published-with-changes', publicPath: '/stories/original', tags: 'collection:private-move' },
+    { id: 'new', title: 'My private draft', updatedAt: '2026-01-02T00:00:00.000Z', publicationStatus: 'draft' }];
+  const published = [{ slug: 'guide', title: 'Existing guide', source: 'host', path: '/guide', collectionIds: ['guides'], body: 'Never copied' },
+    { slug: 'original', title: 'Original public title', collectionIds: ['original-collection'], publishedAt: '2026-01-01T00:00:00.000Z' },
+    { slug: 'colleague', title: 'Another author’s live article', collectionIds: [], publishedAt: '2026-01-02T00:00:00.000Z', ownerUid: 'not exposed' }];
+  const rows = siteArticleIndex(own, published);
+  assert.equal(rows.length, 4);
+  const live = rows.find(row => row.id === 'own');
+  assert.equal(live.title, 'Original public title');
+  assert.equal(live.tags, 'collection:original-collection');
+  assert.equal(live.viewOnly, undefined);
+  assert.equal(live.publicationStatus, 'published-with-changes');
+  const host = rows.find(row => row.source === 'host');
+  assert.equal(host.viewOnly, true);
+  assert.equal(host.publicPath, '/guide');
+  assert.equal(host.updatedAt, '');
+  assert.equal(host.body, undefined);
+  const colleague = rows.find(row => row.publicPath === '/stories/colleague');
+  assert.equal(colleague.viewOnly, true);
+  assert.equal(colleague.tags, '');
+  assert.equal(colleague.ownerUid, undefined);
+  assert.equal(own[0].title, 'My private retitle', 'My articles keeps the working revision');
+  assert.equal(siteArticleIndex(own, [...published, published[0]]).length, 4, 'Deduplicate public URLs');
+});
+
+test('site library ignores unsafe links and does not retain removed publication rows', () => {
+  const host = { slug: 'guide', title: 'Guide', source: 'host', collectionIds: [] };
+  for (const path of ['//evil.test/guide', 'javascript:alert(1)', '/guide/../admin', '/guide?secret=1']) {
+    assert.deepEqual(siteArticleIndex([], [{ ...host, path }]), []);
+  }
+  assert.deepEqual(siteArticleIndex([], []), []);
+  assert.deepEqual(siteArticleIndex([], [{ slug: '../bad', title: 'Bad' }]), []);
+  const offline = { id: 'own', title: 'Offline', updatedAt: '2026-01-01T00:00:00.000Z', publicationStatus: 'unpublished' };
+  assert.deepEqual(siteArticleIndex([offline], []), [offline]);
+});
 
 test('library Read retains the published URL while a working draft changes slug', () => {
   const draft = { publicationStatus: 'published-with-changes', slug: 'new-draft-slug', publicationLiveUrl: 'https://journal.example/previous-release' };

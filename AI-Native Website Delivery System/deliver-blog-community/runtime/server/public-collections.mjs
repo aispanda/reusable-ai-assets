@@ -1,4 +1,5 @@
 const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+import { isHostArticlePath } from './host-articles.mjs';
 const localImage = value => typeof value === 'string' && /^\/(?!\/)[^\\\s<>]+$/.test(value) ? value : '';
 export function renderCollectionsPage({ collections, articles, collectionId, allArticles = false, siteName = 'Library' }) {
   const visible = collections.filter(row => !row.archived);
@@ -10,7 +11,7 @@ export function renderCollectionsPage({ collections, articles, collectionId, all
   const emptyMessage = articleList ? 'No published articles yet.' : 'No collections are available yet.';
   const footer = articleList ? '<a href="/topics">All collections</a>' : '<a href="/">Back to home</a>';
   const cards = items.map(row => {
-    const href = articleList ? '/stories/' + encodeURIComponent(row.slug) : '/topics/' + encodeURIComponent(row.id);
+    const href = articleList ? (row.source === 'host' && isHostArticlePath(row.path) ? row.path : '/stories/' + encodeURIComponent(row.slug)) : '/topics/' + encodeURIComponent(row.id);
     const image = !articleList && localImage(row.art?.src);
     return `<article>${image ? `<img src="${escape(image)}" alt="${escape(row.art.alt)}" loading="lazy" width="600" height="360">` : ''}<h2><a href="${href}">${escape(row.title)}</a></h2><p>${escape(articleList ? row.excerpt : row.description || row.subtitle)}</p></article>`;
   }).join('');

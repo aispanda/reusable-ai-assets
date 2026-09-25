@@ -27,6 +27,14 @@ permission matrix against disposable emulator identities, and a small browser se
 sign-in persistence, creation/submission/review, media and administrator navigation.
 Production smoke is read-only; isolated staging owns destructive lifecycle tests.
 
+When the host already publishes static articles, pass consumer-owned `hostArticles`
+metadata to `createBlogServer`: `{ id, title, excerpt, path, collectionIds,
+readMinutes? }`. The path is a validated local canonical route. These records join
+public discovery and collection counts only when their collections are active;
+they also prevent deletion of a referenced collection. Their content and rendering
+remain with the host. This is catalogue integration, not a migration into editable
+drafts. Do not create duplicate publication records to make static articles visible.
+
 For same-image staging and production, build with `BLOG_PRODUCTION_PROJECT_ID`.
 Pass actual environment/project facts to `loadBuiltProductionProfile`. Staging also
 requires a consumer-owned `BLOG_APPROVED_STAGING_PROFILE` file containing exactly

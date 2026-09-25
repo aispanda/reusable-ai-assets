@@ -7,6 +7,31 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+test('host articles share discovery across the API and collections without owning their routes', async t => {
+  const registry = { revision: 1, collections: [{ id: 'building', title: 'Building', order: 1 }] };
+  const db = { collection: name => name === 'contentCollections'
+    ? { doc: () => ({ get: async () => ({ exists: true, data: () => registry }) }) }
+    : { orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) } };
+  const hostArticles = [{ id: 'principles', title: 'Existing principles', excerpt: 'Useful ideas.', path: '/principles', collectionIds: ['building'] }];
+  const server = createBlogServer({ db, auth: {}, bucket: {}, distRoot: '.', siteOrigin: 'http://127.0.0.1',
+    runtimeConfig: { firebase: { projectId: 'demo-host-articles' } }, hostArticles });
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const api = await fetch(origin + '/api/content/articles');
+  assert.equal(api.status, 200);
+  const { articles } = await api.json();
+  assert.equal(articles.length, 1); assert.equal(articles[0].path, '/principles');
+  assert.deepEqual(articles[0].collectionIds, ['building']); assert.equal(articles[0].source, 'host');
+  for (const path of ['/topics/building', '/stories']) {
+    const response = await fetch(origin + path); assert.equal(response.status, 200);
+    const html = await response.text(); assert.ok(html.includes('href="/principles"')); assert.ok(!html.includes('/stories/principles'));
+  }
+  registry.collections[0].archived = true;
+  assert.deepEqual((await (await fetch(origin + '/api/content/articles')).json()).articles, []);
+  assert.equal((await fetch(origin + '/topics/building')).status, 404);
+});
+
 test('historical comments bootstrap current config while shared chunks preserve exports', async () => {
   const distRoot = await mkdtemp(join(tmpdir(), 'blog-compatible-'));
   let server;

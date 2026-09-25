@@ -4,6 +4,29 @@ import { setImmediate } from 'node:timers/promises';
 import test from 'node:test';
 import { articleCollectionIds, manageCollection } from '../server/collection-management.mjs';
 import { createBlogServer } from '../server/server.mjs';
+import { threadMetrics } from '../server/editorial-workflow.mjs';
+
+test('host article references contribute published counts and prevent collection deletion, without drafts', async () => {
+  const hostArticles = [{ id: 'guide', path: '/guide', collectionIds: ['nature'] }];
+  const registry = { collections: [{ id: 'nature', title: 'Nature', type: 'theme', order: 1 }], revision: 1 };
+  const publications = [];
+  const snap = data => ({ exists: true, data: () => data });
+  const read = name => name === 'studioAccess' ? snap({ active: true, role: 'administrator' })
+    : name === 'contentCollections' ? snap(registry) : { docs: name === 'publishedContent' ? publications : [] };
+  const writes = [];
+  const db = {
+    collection: name => ({ name, get: async () => read(name), doc: (id = 'audit') => ({ name, id, get: async () => read(name) }) }),
+    runTransaction: run => run({ get: async ref => read(ref.name), set: (...args) => writes.push(args), create: (...args) => writes.push(args) }),
+  };
+  const metrics = (await threadMetrics({ db, uid: 'admin', hostArticles })).metrics.nature;
+  assert.equal(metrics.published, 1); assert.equal(metrics.draft, 0);
+  assert.equal((await threadMetrics({ db, uid: 'admin' })).metrics.nature.published, 0);
+  publications.push(snap({ slug: 'guide', tags: ['collection:nature'] }));
+  assert.equal((await threadMetrics({ db, uid: 'admin', hostArticles })).metrics.nature.published, 1);
+  await assert.rejects(manageCollection({ db, uid: 'admin', hostArticles, body: { action: 'delete', id: 'nature', expectedRevision: 1 } }),
+    error => error.statusCode === 409 && /host-managed articles/.test(error.message));
+  assert.deepEqual(writes, []);
+});
 
 test('an unassigned constructor slug does not prevent deleting an unrelated collection', async () => {
   assert.deepEqual(articleCollectionIds('', 'constructor'), []);

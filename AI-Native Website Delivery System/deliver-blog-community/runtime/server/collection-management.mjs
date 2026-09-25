@@ -65,7 +65,7 @@ export async function assertCollectionTags({ db, transaction, tags, existingTags
   if (selected.archived && !tagsOf(existingTags).includes(assigned[0])) fail('This collection is archived. Choose an active collection before submitting or publishing.', 409);
 }
 
-export async function manageCollection({ db, uid, body, uploadedImage }) {
+export async function manageCollection({ db, uid, body, uploadedImage, hostArticles = [] }) {
   if (!body || !['create', 'update', 'delete', 'archive', 'restore'].includes(body.action)) fail('Choose a supported collection action.');
   if (Object.keys(body).some(key => !['action', 'collection', 'id', 'expectedRevision'].includes(key))) fail('Unknown collection request field.');
   return db.runTransaction(async transaction => {
@@ -89,6 +89,9 @@ export async function manageCollection({ db, uid, body, uploadedImage }) {
       if (body.action === 'update') rows = rows.map(row => row.id === id ? normalizeCollection(body.collection, previous, uploadedImage) : row);
       else if (['archive', 'restore'].includes(body.action)) rows = rows.map(row => row.id === id ? { ...row, archived: body.action === 'archive' } : row);
       else {
+        if (hostArticles.some(row => row.collectionIds.includes(id))) {
+          fail('This collection contains host-managed articles. Reassign them in the site catalogue before deleting it.', 409);
+        }
         const snapshots = await Promise.all([
           transaction.get(db.collection('contentDrafts')), transaction.get(db.collection('publishedContent')), transaction.get(db.collection('contentReleases')),
         ]);

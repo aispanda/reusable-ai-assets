@@ -1,4 +1,5 @@
 import { renderCollectionsPage } from './public-collections.mjs';
+import { validateHostArticles, visibleHostArticles } from './host-articles.mjs';
 import { listCollections, manageCollection, articleCollectionIds } from './collection-management.mjs';
 import { transitionReview, listEditorialDrafts, threadMetrics, deriveArticle } from './editorial-workflow.mjs';
 import { manageAccess } from './editorial-access.mjs';
@@ -30,7 +31,16 @@ import { createStudioImageAsset, resolveStudioContentAsset } from './studio-cont
 import { saveCollectionArtwork, resolveCollectionArtwork } from './collection-artwork.mjs';
 import { buildRuntimePublicConfig, injectRuntimePublicConfig, prepareServedText } from './runtime-config.mjs';
 
-export const createBlogServer = ({ db, auth, bucket, siteOrigin, runtimeConfig, distRoot }) => {
+export const createBlogServer = ({ db, auth, bucket, siteOrigin, runtimeConfig, distRoot, hostArticles = [] }) => {
+const HOST_ARTICLES = validateHostArticles(hostArticles);
+const loadPublicCatalogue = async (includeCollections = true) => {
+  const [{ collections }, published] = await Promise.all([
+    includeCollections || HOST_ARTICLES.length ? listCollections(db) : { collections: [] },
+    listPublishedArticles(db),
+  ]);
+  const articles = published.map(row => ({ ...row, collectionIds: articleCollectionIds(row.tags, row.slug) }));
+  return { collections, articles: [...articles, ...visibleHostArticles(HOST_ARTICLES, collections, new Set(published.map(row => row.slug)))] };
+};
 const DIST_ROOT = resolve(distRoot);
 const SITE_ORIGIN = new URL(siteOrigin).origin;
 const ARTICLE_ORIGIN = new URL(runtimeConfig?.articleSiteOrigin || siteOrigin).origin;
@@ -149,8 +159,8 @@ const handleApi = async (request, response, url) => {
     return;
   }
   if (url.pathname === '/api/content/articles' && ['GET', 'HEAD'].includes(request.method)) {
-    const articles = await listPublishedArticles(db);
-    json(response, 200, { articles: articles.map(({ slug, title, excerpt, layout, tags, readMinutes }) => ({ slug, title, excerpt, readMinutes, collectionIds: articleCollectionIds(tags, slug), layout: articleLayout(layout) })) });
+    const { articles } = await loadPublicCatalogue(false);
+    json(response, 200, { articles: articles.map(({ slug, title, excerpt, layout, collectionIds, readMinutes, source, path }) => ({ slug, title, excerpt, readMinutes, collectionIds, layout: articleLayout(layout), ...(source === 'host' ? { source, path } : {}) })) });
     return;
   }
   requireSameOrigin(request);
@@ -163,7 +173,7 @@ const handleApi = async (request, response, url) => {
     json(response, 200, await listEditorialDrafts({ db, uid: user.uid })); return;
   }
   if (url.pathname === '/api/content/editorial/metrics' && request.method === 'GET') {
-    json(response, 200, await threadMetrics({ db, uid: user.uid })); return;
+    json(response, 200, await threadMetrics({ db, uid: user.uid, hostArticles: HOST_ARTICLES })); return;
   }
   if (['/api/content/editorial/review', '/api/content/editorial/derive', '/api/content/access'].includes(url.pathname)) {
     if (request.method !== 'POST') throw Object.assign(new Error('Method not allowed.'), { statusCode: 405 });
@@ -201,7 +211,7 @@ const handleApi = async (request, response, url) => {
         bytes: Buffer.from(await file.arrayBuffer()), mimeType: file.type }));
       return;
     }
-    json(response, 200, await manageCollection({ db, uid: user.uid, body: await readJson(request) }));
+    json(response, 200, await manageCollection({ db, uid: user.uid, body: await readJson(request), hostArticles: HOST_ARTICLES }));
     return;
   }
   const imageDraftId = contentImageUploadFromPath(url.pathname);
@@ -455,8 +465,7 @@ const serveContentAsset = async (request, response, assetId) => {
 
 const serveStatic = async (request, response, url) => {
   if (url.pathname === '/stories' || url.pathname === '/topics' || /^\/topics\/[a-z0-9-]+$/.test(url.pathname)) {
-    const [{ collections }, published] = await Promise.all([listCollections(db), listPublishedArticles(db)]);
-    const articles = published.map(row => ({...row, collectionIds: articleCollectionIds(row.tags, row.slug)}));
+    const { collections, articles } = await loadPublicCatalogue();
     const html = renderCollectionsPage({ collections, articles, allArticles: url.pathname === '/stories', collectionId: url.pathname.split('/')[2], siteName: runtimeConfig.siteName || 'Library' });
     if (!html) throw Object.assign(new Error('Collection not found.'), {statusCode:404});
     serveText(request,response,html,'text/html; charset=utf-8',200,'no-cache'); return;

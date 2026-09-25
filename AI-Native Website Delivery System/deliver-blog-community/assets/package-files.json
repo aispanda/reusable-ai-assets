@@ -1,5 +1,6 @@
 [
   "runtime/src/scripts/sign-in-navigation.mjs",
+  "runtime/server/host-articles.mjs",
   "runtime/tests/sign-in-navigation.test.mjs",
   "agents/openai.yaml",
   "assets/adoption-profile.example.json",

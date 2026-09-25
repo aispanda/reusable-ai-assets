@@ -226,6 +226,7 @@ export async function initializeCollectionsUI({ role, tagsInput, slugInput }) {
       }
       countCell.title = `Drafts: ${metricNumber(count, 'draft')}; Returned: ${metricNumber(count, 'returned')}; Unpublished: ${metricNumber(count, 'unpublished')}; Pending revisions: ${metricNumber(count, 'pendingRevisions')}`;
       const actions = element('div', '', { class: 'studio-collection-row-actions' });
+      if (!row.archived) actions.append(element('a', 'View', { href: `/topics/${row.id}`, class: 'studio-collection-edit', 'aria-label': `View ${row.title}` }));
       const edit = element('button', 'Edit', { type: 'button', class: 'studio-collection-edit', 'aria-label': `Edit ${row.title}` }); edit.addEventListener('click', () => showEditor(row));
       actions.append(edit, actionMenu(row)); item.append(identity, kind, visibility, countCell, actions); list.append(item);
     }

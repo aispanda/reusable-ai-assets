@@ -96,7 +96,7 @@ export async function listEditorialDrafts({ db, uid }) {
   return { drafts: [...rows.values()].sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt))) };
 }
 
-export async function threadMetrics({ db, uid }) {
+export async function threadMetrics({ db, uid, hostArticles = [] }) {
   const access = (await db.collection('studioAccess').doc(uid).get()).data();
   if (!access?.active || access.role !== 'administrator') fail('Administrator access is required.', 403);
   const [registry, drafts, publications] = await Promise.all([listCollections(db), db.collection('contentDrafts').get(), db.collection('publishedContent').get()]);
@@ -115,6 +115,10 @@ export async function threadMetrics({ db, uid }) {
   for (const published of publications.docs) {
     const row = published.data();
     for (const topic of articleCollectionIds(row.tags, row.slug)) if (metrics[topic]) metrics[topic].published++;
+  }
+  const publishedSlugs = new Set(publications.docs.map(snapshot => snapshot.data().slug));
+  for (const row of hostArticles.filter(row => !publishedSlugs.has(row.id))) {
+    for (const topic of row.collectionIds) if (metrics[topic]) metrics[topic].published++;
   }
   return { metrics };
 }

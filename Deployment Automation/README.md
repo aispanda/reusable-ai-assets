@@ -86,6 +86,19 @@ Before release, inspect the container install layer: it must receive every depen
 
 The configured production build must also leave the repository clean. Preflight checks `git status` again after the build so generated files, formatting changes or line-ending rewrites cannot make the submitted Cloud Build context differ from the commit SHA used as the image tag.
 
+## Cross-project image access
+
+For staged releases, use [`scripts/cloud-run-image-access.mjs`](scripts/cloud-run-image-access.mjs) from the existing consumer isolation verifier before building and again before promoting. `verifyCloudRunImagePullAccess` takes `imageRepository`, `releaseProject`, `stagingProject`, `productionProject` and two read-only adapters:
+
+- `describeProject(projectId)` returns authoritative `{ projectId, projectNumber }` from an explicit `gcloud projects describe PROJECT --format=json` query.
+- `checkPermission({ resource, principalEmail, permission })` returns Policy Troubleshooter's validated `overallAccessState`. Use the consumer's existing command adapter and explicit quota project; command failures must throw.
+
+Both Cloud Run **service agents**, derived as `service-PROJECT_NUMBER@serverless-robot-prod.iam.gserviceaccount.com`, must have effective `artifactregistry.repositories.downloadArtifacts` on the exact Artifact Registry repository. Application runtime and build identities are different principals. Only `CAN_ACCESS` passes; denied, unknown or failed queries stop the release. A successful repository lookup by the operator is insufficient.
+
+This helper never creates identities or grants IAM. If missing, separately authorize `roles/artifactregistry.reader` for the affected service agent on that repository only. Permission verification does not replace existing least-privilege/isolation checks. The helper is not automatically wired into `deploy.sh`; staged consumers call it through `ISOLATION_VERIFY_COMMAND`. Import it from the selected RA-002 owner without copying a controller. When another checkout owns an active release, first finish that release, integrate and test the helper in that owner, then update consumer imports. Do not repoint a staged launcher to a checkout missing its staged controller.
+
+Run its isolated tests with `node --test scripts/cloud-run-image-access.test.mjs`; no cloud or credentials are used.
+
 ## Secret bootstrap safety
 
 Secret Manager/API enablement, secret creation, IAM bindings and key rotation are infrastructure mutations outside `deploy.sh`; obtain separate explicit approval before each bootstrap scope. Grant runtime access on the individual secret, use a dedicated runtime identity, and prefer a dedicated database or similarly isolated data boundary over a project-wide data role.

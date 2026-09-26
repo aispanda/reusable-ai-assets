@@ -1,0 +1,22 @@
+name: Judge LLM Review
+on:
+  workflow_call:
+    inputs:
+      content_path:
+        required: true
+        type: string
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Judge LLM Validation
+        env:
+          CONTENT_PATH: ${{ inputs.content_path }}
+          RULES_PATH: rules/validation.yaml
+        run: python3 scripts/judge_review.py --path "$CONTENT_PATH" --rules "$RULES_PATH"

@@ -1,0 +1,50 @@
+name: Release authorization
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Linear issue key, for example AI-88
+        required: true
+        type: string
+      reviewed_sha:
+        description: Reviewed and merged main commit SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  authorize-production:
+    name: authorize-production
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: main
+      - name: Fetch governed Linear evidence
+        env:
+          LINEAR_ISSUE: ${{ inputs.issue }}
+          TFY_API_KEY: ${{ secrets.TFY_API_KEY }}
+        run: >-
+          python3 "AI-Native Rapid Solution Delivery Kit/rapid-ai-solution-delivery/scripts/fetch_linear_issue.py"
+          --issue "$LINEAR_ISSUE"
+          --output "$RUNNER_TEMP/linear-issue.json"
+      - name: Prove reviewed main artifact and protected release path
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LINEAR_ISSUE: ${{ inputs.issue }}
+          REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+        run: >-
+          python3 "AI-Native Rapid Solution Delivery Kit/rapid-ai-solution-delivery/scripts/check_delivery.py"
+          --mode deploy
+          --branch main
+          --issue "$LINEAR_ISSUE"
+          --issue-json "$RUNNER_TEMP/linear-issue.json"
+          --reviewed-sha "$REVIEWED_SHA"
+          --environment production

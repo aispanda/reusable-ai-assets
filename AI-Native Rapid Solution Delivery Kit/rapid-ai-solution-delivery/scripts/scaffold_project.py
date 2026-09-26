@@ -13,6 +13,15 @@ ASSETS = Path(__file__).resolve().parents[1] / "assets"
 
 COMMON = {
     "AGENTS.md": "AGENTS.template.md",
+    "docs/GOVERNANCE_ACTIVATION.md": "GOVERNANCE_ACTIVATION.template.md",
+    ".github/pull_request_template.md": "PULL_REQUEST_TEMPLATE.template.md",
+    ".github/workflows/governance.yml": "GOVERNANCE_WORKFLOW.template.yml",
+    ".github/workflows/quality.yml": "QUALITY_WORKFLOW.template.yml",
+    ".github/workflows/release.yml": "RELEASE_WORKFLOW.template.yml",
+    "governance/check_delivery.py": "check_delivery.py",
+    "governance/fetch_linear_issue.py": "fetch_linear_issue.py",
+    "governance/run_quality.sh": "RUN_QUALITY.template.sh",
+    "governance/set_pull_request_status.py": "set_pull_request_status.py",
     "docs/DOCUMENTATION_ROUTER.md": "DOCUMENTATION_ROUTER.template.md",
     "docs/PROJECT_CHARTER.md": "PROJECT_CHARTER.template.md",
     "docs/PROJECT_PLAN.md": "PROJECT_PLAN.template.md",
@@ -21,6 +30,11 @@ COMMON = {
     "docs/FIRST_SLICE_BUILD_BRIEF.md": "FIRST_SLICE_BUILD_BRIEF.template.md",
     "docs/AI_HANDOVER.md": "AI_HANDOVER.template.md",
     "docs/AI_HANDOVER_PROTOCOL.md": "AI_HANDOVER_PROTOCOL.template.md",
+}
+SCRIPT_SOURCES = {
+    "governance/check_delivery.py": Path(__file__).with_name("check_delivery.py"),
+    "governance/fetch_linear_issue.py": Path(__file__).with_name("fetch_linear_issue.py"),
+    "governance/set_pull_request_status.py": Path(__file__).with_name("set_pull_request_status.py"),
 }
 STANDARD = {
     "docs/ENGINEERING_PRINCIPLES.md": "ENGINEERING_PRINCIPLES.template.md",
@@ -40,6 +54,7 @@ RESEARCH = {"research/README.md": "RESEARCH_VAULT_README.template.md"}
 AI_EXCHANGE = {"prompts/ai-exchange/README.md": "AI_EXCHANGE_README.template.md"}
 
 OWNERSHIP = {
+    "GOVERNANCE_ACTIVATION.md": "Remote branch, status, secret and production-environment controls",
     "PROJECT_CHARTER.md": "Business outcome, users, success, constraints, and boundary",
     "PROJECT_PLAN.md": "Phases, gates, status, and next action",
     "WORK_ITEM_REGISTER.md": "Outcome-oriented requirements and acceptance",
@@ -138,7 +153,8 @@ def scaffold(args: argparse.Namespace) -> int:
                 cursor = cursor.parent
             target.parent.mkdir(parents=True, exist_ok=True)
             created_dirs.extend(reversed(missing))
-            target.write_text(render(ASSETS / template_name, tokens), encoding="utf-8")
+            source = SCRIPT_SOURCES.get(relative, ASSETS / template_name)
+            target.write_text(render(source, tokens), encoding="utf-8")
             created_files.append(target)
         if args.stage == "build-ready":
             for relative in ("src", "tests", "scripts/Main-scripts", "scripts/One-off-scripts"):

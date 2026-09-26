@@ -10,7 +10,7 @@ import {
 } from '../src/scripts/studio-toolbar-navigation.mjs';
 import { createStudioImageOperationCoordinator } from '../src/scripts/studio-image-operations.mjs';
 import { captureStudioPreviewState, isStudioPreviewStateCurrent } from '../src/scripts/studio-preview-operations.mjs';
-import { studioPublicUrl, siteArticleIndex } from '../src/scripts/studio-library-operations.mjs';
+import { studioArticleAction, studioPublicUrl, siteArticleIndex } from '../src/scripts/studio-library-operations.mjs';
 
 test('site library joins published pages and own drafts without counterfeit edit rights or dates', () => {
   const own = [{ id: 'own', title: 'My private retitle', updatedAt: '2026-01-03T00:00:00.000Z', publicationStatus: 'published-with-changes', publicPath: '/stories/original', tags: 'collection:private-move' },
@@ -58,6 +58,29 @@ test('library Read retains the published URL while a working draft changes slug'
   assert.equal(studioPublicUrl({ ...draft, publicationLiveUrl: '' }), undefined);
   assert.equal(studioPublicUrl({ ...draft, publicationLiveUrl: 'javascript:alert(1)' }), undefined);
   assert.equal(studioPublicUrl({ publicationStatus: 'published' }, '/open-the-ai'), '/open-the-ai');
+});
+
+test('article-library actions distinguish new revisions from existing draft work', () => {
+  const currentUserId = 'author-1';
+  const owned = { title: 'A published essay', ownerUid: currentUserId };
+  assert.deepEqual(studioArticleAction({ ...owned, publicationStatus: 'draft' }, currentUserId), {
+    kind: 'edit', label: 'Edit', ariaLabel: 'Edit A published essay',
+  });
+  assert.deepEqual(studioArticleAction({ ...owned, publicationStatus: 'published' }, currentUserId), {
+    kind: 'create-revision', label: 'Create revision draft', ariaLabel: 'Create revision draft for A published essay',
+  });
+  assert.deepEqual(studioArticleAction({ ...owned, publicationStatus: 'published-with-changes' }, currentUserId), {
+    kind: 'continue-revision', label: 'Continue draft', ariaLabel: 'Continue revision draft for A published essay',
+  });
+  assert.deepEqual(studioArticleAction({ ...owned, publicationStatus: 'published', viewOnly: true }, currentUserId), {
+    kind: 'view', label: 'View article', ariaLabel: 'View A published essay',
+  });
+  assert.deepEqual(studioArticleAction({ ...owned, publicationStatus: 'draft', reviewStatus: 'submitted' }, currentUserId), {
+    kind: 'review', label: 'Review article', ariaLabel: 'Review article A published essay',
+  });
+  assert.deepEqual(studioArticleAction({ ...owned, publicationStatus: 'draft', ownerUid: 'author-2' }, currentUserId), {
+    kind: 'review', label: 'Review article', ariaLabel: 'Review article A published essay',
+  });
 });
 
 test('an edit during delayed preview cannot restore publication readiness', async () => {

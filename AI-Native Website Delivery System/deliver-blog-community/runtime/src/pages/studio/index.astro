@@ -581,7 +581,7 @@ import site from '@/site';
       import { normalizeYouTubeUrl } from '@/scripts/studio-youtube.mjs';
       import { createStudioImageOperationCoordinator } from '@/scripts/studio-image-operations.mjs';
       import { captureStudioPreviewState, hydratePrivatePreviewImages, isStudioPreviewStateCurrent } from '@/scripts/studio-preview-operations.mjs';
-      import { studioPublicUrl, siteArticleIndex, type PublicArticleSummary } from '@/scripts/studio-library-operations.mjs';
+      import { studioArticleAction, studioPublicUrl, siteArticleIndex, type PublicArticleSummary } from '@/scripts/studio-library-operations.mjs';
       import { publicationOrigin } from '@/scripts/firebase-client';
       import {
         closeToolbarMenuAndFocusSummary,
@@ -1020,8 +1020,9 @@ import site from '@/site';
             const editLink = document.createElement('a');
             editLink.className = 'studio-document-edit';
             editLink.href = editPath;
-            editLink.textContent = 'Edit';
-            editLink.setAttribute('aria-label', `Edit draft for ${item.title}`);
+            const action = studioArticleAction({ ...item, ...draftRecords.get(item.id) }, studioBackend.uid);
+            editLink.textContent = action.label;
+            editLink.setAttribute('aria-label', action.ariaLabel);
             itemMeta.append(editLink);
           }
           card.append(itemTitle, itemMeta);
@@ -1160,14 +1161,14 @@ import site from '@/site';
         libraryTitle.textContent = heading;
         const administrativeView = showingAdministrativeArticles() && ['unpublished', 'archived'].includes(currentFilter);
         const guidance = administrativeView ? 'Manage offline articles using their last published titles. Other authors’ private revisions remain private.' : reviewPage ? 'Only explicitly submitted revisions are available for review.' : currentFilter === 'published'
-          ? 'Select a title to read the live article; Edit draft opens unpublished work.'
+          ? 'Select a title to read the live article; Create revision draft starts private changes and Continue draft resumes them.'
           : currentFilter === 'draft'
             ? 'Includes unpublished articles and draft changes to published articles.'
             : currentFilter === 'unpublished'
               ? 'These articles are offline and may be republished or moved to trash.'
               : currentFilter === 'archived'
                 ? 'Drafts in trash are retained for recovery. Restore a draft to edit or publish it.'
-              : 'Published titles open the live article; Edit draft opens unpublished work.';
+              : 'Published titles open the live article; revision actions keep changes private until publication.';
         const scopeGuidance = showingSiteArticles() && ['all', 'published'].includes(currentFilter)
           ? 'Published articles across this site and your own drafts. View-only articles cannot be edited here.' : guidance;
         librarySummary.textContent = `${visible.length} of ${documents.length} articles · ${scopeGuidance}`;
@@ -1232,8 +1233,9 @@ import site from '@/site';
           const editLink = document.createElement('a');
           editLink.className = 'studio-library-edit-link';
           editLink.href = `/write?draft=${encodeURIComponent(item.id)}`;
-          editLink.textContent = draftRecords.get(item.id)?.ownerUid !== studioBackend.uid || draftRecords.get(item.id)?.reviewStatus === 'submitted' ? 'Review article' : hasLiveVersion(item) ? 'Edit draft' : 'Edit';
-          editLink.setAttribute('aria-label', `${hasLiveVersion(item) ? 'Edit draft for' : 'Edit'} ${item.title}`);
+          const action = studioArticleAction({ ...item, ...draftRecords.get(item.id) }, studioBackend.uid);
+          editLink.textContent = action.label;
+          editLink.setAttribute('aria-label', action.ariaLabel);
 
           const actions = document.createElement('div');
           actions.className = 'studio-library-actions';

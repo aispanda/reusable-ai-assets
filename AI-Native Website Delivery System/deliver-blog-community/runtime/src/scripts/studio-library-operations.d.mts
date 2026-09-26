@@ -3,6 +3,21 @@ export const studioPublicUrl: (
   staticPath?: string,
 ) => string | undefined;
 
+export const studioArticleAction: (
+  article: {
+    title: string;
+    publicationStatus: string;
+    viewOnly?: boolean;
+    ownerUid?: string;
+    reviewStatus?: string;
+  },
+  currentUserId: string,
+) => {
+  kind: 'view' | 'review' | 'continue-revision' | 'create-revision' | 'edit';
+  label: string;
+  ariaLabel: string;
+};
+
 export type PublicArticleSummary = {
   slug: string;
   title: string;

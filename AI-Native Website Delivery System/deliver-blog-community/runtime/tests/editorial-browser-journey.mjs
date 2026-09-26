@@ -147,7 +147,7 @@ export async function runEditorialBrowserJourney({ origin, packageSha256, artifa
     await admin.page.goto(origin + '/review');
     await expect(admin.page.locator('[data-content-library]')).toContainText('Reusable browser journey');
     assert.equal((await fetch(origin + '/stories/' + fixture)).status, 404, 'Submitted draft must remain private');
-    await admin.page.locator('[data-library-list]').getByRole('link', { name: 'Edit Reusable browser journey', exact: true }).click();
+    await admin.page.locator('[data-library-list]').getByRole('link', { name: 'Review article Reusable browser journey', exact: true }).click();
     await expect(admin.page.locator('[data-studio]')).toHaveAttribute('data-studio-ready', 'true');
     await expect(admin.page.locator('[data-title]')).toBeDisabled();
     await admin.page.locator('[data-preview]').click();
@@ -163,6 +163,14 @@ export async function runEditorialBrowserJourney({ origin, packageSha256, artifa
     assert.ok(html.includes('Reusable browser journey') && html.includes('A reader asks a careful question.'));
     assert.ok(html.includes('data-article-layout="study-reflection"'));
     checks.push('Administrator reviews without editing and publishes the submitted revision; anonymous page contains exact title, prose and layout');
+    await author.page.goto(origin + '/my-articles');
+    const createRevision = author.page.locator('[data-library-list]').getByRole('link', { name: 'Create revision draft for Reusable browser journey', exact: true });
+    await expect(createRevision).toHaveAttribute('href', /\/write\?draft=/);
+    await createRevision.click();
+    await expect(author.page.locator('[data-studio]')).toHaveAttribute('data-studio-ready', 'true');
+    await expect(author.page.locator('[data-title]')).toHaveValue('Reusable browser journey');
+    assert.equal(await (await fetch(origin + '/stories/' + fixture)).text(), html, 'Opening a revision draft leaves the live snapshot unchanged');
+    checks.push('Published article clearly starts a private revision seeded from the live content without changing the public release');
     // Change only this emulator author's working revision. The live snapshot
     // must continue to supply the administrator's public title and collection.
     const articleDraftId = new URL(author.page.url()).searchParams.get('draft');
@@ -196,6 +204,7 @@ export async function runEditorialBrowserJourney({ origin, packageSha256, artifa
     await author.page.goto(origin + '/my-articles');
     await expect(author.page.locator('[data-library-scope]')).toBeHidden();
     await expect(author.page.locator('[data-library-list]')).toContainText(privateTitle);
+    await expect(author.page.locator('[data-library-list]').getByRole('link', { name: `Continue revision draft for ${privateTitle}`, exact: true })).toBeVisible();
     await author.page.locator('[data-article-collection-filter]').selectOption('__unassigned__');
     await expect(author.page.locator('[data-library-list]')).toContainText(privateTitle);
     assert.equal(await (await fetch(origin + '/stories/' + fixture)).text(), html, 'Private working changes leave the live snapshot unchanged');

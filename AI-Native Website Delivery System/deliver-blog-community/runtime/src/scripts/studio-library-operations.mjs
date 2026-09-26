@@ -10,6 +10,24 @@ export const studioPublicUrl = ({ publicationStatus, publicationLiveUrl, archive
   }
 };
 
+// Name the destination and consequence of the primary row action. A published
+// document already has a working record, but opening that record starts a
+// private revision when it still matches the live release and resumes it after
+// unpublished changes exist.
+export const studioArticleAction = ({ title, publicationStatus, viewOnly, ownerUid, reviewStatus }, currentUserId) => {
+  if (viewOnly) return { kind: 'view', label: 'View article', ariaLabel: `View ${title}` };
+  if (ownerUid !== currentUserId || reviewStatus === 'submitted') {
+    return { kind: 'review', label: 'Review article', ariaLabel: `Review article ${title}` };
+  }
+  if (publicationStatus === 'published-with-changes') {
+    return { kind: 'continue-revision', label: 'Continue draft', ariaLabel: `Continue revision draft for ${title}` };
+  }
+  if (publicationStatus === 'published') {
+    return { kind: 'create-revision', label: 'Create revision draft', ariaLabel: `Create revision draft for ${title}` };
+  }
+  return { kind: 'edit', label: 'Edit', ariaLabel: `Edit ${title}` };
+};
+
 // The site catalogue contains published metadata, not editable drafts. Merge it
 // with this user's own workspace by the live URL (a draft's slug can change).
 // Use live titles/tags in the site view so collection counts and filters agree.

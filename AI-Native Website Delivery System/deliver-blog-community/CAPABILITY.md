@@ -1,6 +1,6 @@
 # Blog/community capability — RA-006 extension
 
-Status: **0.2.0-rc.9 — installable local integration candidate.**
+Status: **0.2.0-rc.10 — installable local integration candidate.**
 Extracted runtime, dependencies, rules, editorial/community UI and executable tests
 are included. This is not a production-certified or publicly licensed release.
 Complete scenario and deployed-browser evidence remain prerequisites for promotion.
@@ -49,13 +49,15 @@ The website itself must not need these development agents to handle ordinary use
 
 ## Runtime boundary
 
-The rc.9 runtime adds site-wide editorial roles, administrator-only collection/user
+The rc.10 runtime adds site-wide editorial roles, administrator-only collection/user
 management, role applications and invitations, explicit review submission/return,
 author unpublication, administrator-only trash after unpublication, three article
 presentations, and generic public collection/article indexes. Publishers cannot
 edit another author's draft; adaptations remain separately attributed articles.
 Article lists distinguish `Create revision draft` for an unchanged live article
-from `Continue draft` when unpublished work already exists.
+from `Continue draft` when unpublished work already exists. Host-code pages use a
+distinct `Published · Website managed` state, explain their deployment boundary,
+and expose only a `View page` action until a consumer performs an explicit migration.
 These are packaged capabilities, not a claim that every consumer has passed acceptance.
 
 This prerelease keeps v1 readers and original stored bytes, and adds opt-in v2

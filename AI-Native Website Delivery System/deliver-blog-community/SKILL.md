@@ -5,7 +5,7 @@ description: Install, verify, or upgrade a site's Google sign-in, role requests,
 
 # Deliver Blog Community
 
-Current runtime: **0.2.0-rc.9 local integration candidate; not a production release**.
+Current runtime: **0.2.0-rc.10 local integration candidate; not a production release**.
 Read [CAPABILITY.md](CAPABILITY.md) first. Code is in `runtime/`; use the hash-pinned
 installer and [runtime instructions](references/runtime.md). Configuration checks
 alone never establish tested delivery or complete scenario coverage.

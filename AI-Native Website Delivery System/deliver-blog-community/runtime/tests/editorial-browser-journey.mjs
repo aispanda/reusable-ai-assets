@@ -63,20 +63,28 @@ export async function runEditorialBrowserJourney({ origin, packageSha256, artifa
     const publishedRow = title => library.locator('.studio-library-row').filter({
       has: admin.page.getByRole('link', { name: `Read ${title}`, exact: true }),
     });
-    const expectReadOnly = async (title, path) => {
+    const expectReadOnly = async (title, path, { websiteManaged = false } = {}) => {
       const row = publishedRow(title);
       await expect(row).toHaveCount(1);
       await expect(row.getByRole('link', { name: `Read ${title}`, exact: true })).toHaveAttribute('href', path);
-      await expect(row.getByRole('link', { name: `View ${title}`, exact: true })).toHaveAttribute('href', path);
+      if (websiteManaged) {
+        await expect(row).toContainText('Published · Website managed');
+        await expect(row).toContainText('Edit or unpublish through a site deployment. Migrate to Studio first for editorial controls.');
+        await expect(row.getByRole('link', { name: `View page ${title}`, exact: true })).toHaveAttribute('href', path);
+      } else {
+        await expect(row).toContainText('Published article · view only');
+        await expect(row).not.toContainText('Website managed');
+        await expect(row.getByRole('link', { name: `View ${title}`, exact: true })).toHaveAttribute('href', path);
+      }
       await expect(row.locator('a[href^="/write"], .studio-row-menu, button')).toHaveCount(0);
     };
     await expect(scope).toBeVisible();
     await expect(scope).toHaveValue('site');
     await expect(admin.page.locator('[data-library-title]')).toHaveText('All site articles');
     for (const article of hostArticles) {
-      await expectReadOnly(article.title, article.path);
+      await expectReadOnly(article.title, article.path, { websiteManaged: true });
       await collectionFilter.selectOption(article.collectionIds[0]);
-      await expectReadOnly(article.title, article.path);
+      await expectReadOnly(article.title, article.path, { websiteManaged: true });
       for (const other of hostArticles.filter(row => !row.collectionIds.includes(article.collectionIds[0]))) {
         await expect(publishedRow(other.title)).toHaveCount(0);
       }
@@ -86,8 +94,8 @@ export async function runEditorialBrowserJourney({ origin, packageSha256, artifa
     await expect(admin.page.locator('[data-library-title]')).toHaveText('My articles');
     await expect(library.locator('.studio-library-row')).toHaveCount(0);
     await scope.selectOption('site');
-    for (const article of hostArticles) await expectReadOnly(article.title, article.path);
-    checks.push('Administrator defaults to All site articles; own scope stays separate and configured host pages have canonical, read-only links and correct collection filters');
+    for (const article of hostArticles) await expectReadOnly(article.title, article.path, { websiteManaged: true });
+    checks.push('Administrator defaults to All site articles; own scope stays separate and configured host pages explain their website-managed, read-only boundary and keep canonical links and collection filters');
     await admin.page.getByRole('link', { name: 'Manage collections', exact: true }).click();
     await expect(admin.page.getByRole('heading', { name: 'Collections', exact: true })).toBeVisible();
     await admin.page.locator('[data-new-collection]').click();

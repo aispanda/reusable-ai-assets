@@ -8,6 +8,7 @@ export const studioArticleAction: (
     title: string;
     publicationStatus: string;
     viewOnly?: boolean;
+    source?: 'host' | 'published';
     ownerUid?: string;
     reviewStatus?: string;
   },

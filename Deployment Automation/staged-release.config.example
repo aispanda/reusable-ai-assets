@@ -1,0 +1,34 @@
+# Copy into a consuming project, replace every value, and keep receipts ignored.
+# Format: one unquoted KEY=VALUE per line. Commands are trusted project inputs.
+
+RELEASE_PROJECT=artifact-and-build-project
+STAGING_PROJECT=isolated-nonproduction-project
+PRODUCTION_PROJECT=production-project
+STAGING_SERVICE=example-web-staging
+PRODUCTION_SERVICE=example-web
+STAGING_RUNTIME_IDENTITY=replace-with-isolated-staging-runtime-identity
+PRODUCTION_RUNTIME_IDENTITY=replace-with-production-runtime-identity
+BUILD_SERVICE_ACCOUNT=replace-with-dedicated-artifact-only-build-identity
+SOURCE_BUCKET=gs://replace-with-dedicated-source-bucket/source
+REGION=us-central1
+RELEASE_BRANCH=main
+STAGING_DOMAIN=AUTO
+PRODUCTION_DOMAIN=https://www.example.com
+BUILD_WORKING_DIRECTORY=.
+BUILD_COMMAND=npm run build
+CLOUD_BUILD_CONFIG=cloudbuild.image.yaml
+IMAGE_REPOSITORY=us-central1-docker.pkg.dev/artifact-and-build-project/example/example-web
+ISOLATION_VERIFY_COMMAND=npm run release:verify-isolation
+STAGING_PREREQUISITE_VERIFY_COMMAND=npm run release:verify-staging-prerequisites
+PRODUCTION_PREREQUISITE_VERIFY_COMMAND=npm run release:verify-production-prerequisites
+STAGING_VERIFY_COMMAND=npm run test:staging
+RUNTIME_CONFIG_FILES=server/runtime-config.js,cloudbuild.image.yaml
+RULES_FILE=firestore.rules
+HEALTH_ROUTE=/
+STAGING_DATA_BOUNDARY=project:isolated-nonproduction-project
+PRODUCTION_DATA_BOUNDARY=project:production-project
+STAGING_RECEIPT=.release-evidence/staging.json
+PROMOTION_RECEIPT=.release-evidence/production.json
+EXPECTED_STAGING_TRAFFIC_PERCENT=100
+EXPECTED_PRODUCTION_TRAFFIC_PERCENT=100
+RECEIPT_MAX_AGE_HOURS=72

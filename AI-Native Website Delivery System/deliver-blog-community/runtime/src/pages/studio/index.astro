@@ -1213,16 +1213,18 @@ import site from '@/site';
           identity.append(collectionNote);
           if (item.viewOnly) {
             const note = document.createElement('small');
-            note.textContent = item.source === 'host' ? 'Published page · managed in the website' : 'Published article · view only';
+            note.textContent = item.source === 'host'
+              ? 'Edit or unpublish through a site deployment. Migrate to Studio first for editorial controls.'
+              : 'Published article · view only';
             identity.append(note);
           }
           const authorName = draftRecords.get(item.id)?.authorName;
           if (authorName) { const byline = document.createElement('small'); byline.textContent = `By ${authorName}`; identity.append(byline); }
 
           const status = document.createElement('span');
-          status.className = `studio-library-status is-${item.archivedAt ? 'archived' : item.publicationStatus}`;
+          status.className = `studio-library-status is-${item.source === 'host' ? 'website-managed' : item.archivedAt ? 'archived' : item.publicationStatus}`;
           const editorialStatus = draftRecords.get(item.id)?.reviewStatus;
-          status.textContent = item.archivedAt ? 'In trash' : [statusLabel(item.publicationStatus), editorialStatus === 'submitted' ? 'Submitted for review' : editorialStatus === 'returned' ? 'Returned · feedback available' : ''].filter(Boolean).join(' · ');
+          status.textContent = item.source === 'host' ? 'Published · Website managed' : item.archivedAt ? 'In trash' : [statusLabel(item.publicationStatus), editorialStatus === 'submitted' ? 'Submitted for review' : editorialStatus === 'returned' ? 'Returned · feedback available' : ''].filter(Boolean).join(' · ');
 
           const updated = document.createElement('time');
           if (item.updatedAt && Number.isFinite(Date.parse(item.updatedAt))) {
@@ -1241,8 +1243,6 @@ import site from '@/site';
           actions.className = 'studio-library-actions';
           if (item.viewOnly) {
             editLink.href = item.publicPath!;
-            editLink.textContent = 'View article';
-            editLink.setAttribute('aria-label', `View ${item.title}`);
             actions.append(editLink);
             row.append(identity, status, updated, actions);
             libraryList.append(row);
@@ -2407,6 +2407,7 @@ import site from '@/site';
   :global(.studio-row-menu-items button.is-danger) { color: #9d2d24; }
   :global(.studio-library-status) { justify-self: start; padding: .3rem .55rem; border-radius: 999px; background: var(--soft-solar); color: #754705; font-size: .72rem; font-weight: 800; }
   :global(.studio-library-status.is-published) { background: var(--soft-clarity); color: #244e9d; }
+  :global(.studio-library-status.is-website-managed) { background: #ece9e2; color: #4c515a; }
   :global(.studio-library-status.is-published-with-changes) { background: #f2ead7; color: #6d4d12; }
   :global(.studio-library-status.is-unpublished) { background: #ece9e2; color: #5c6068; }
   :global(.studio-library-empty) { padding: 3rem 1rem; border-bottom: 1px solid var(--line); text-align: center; }

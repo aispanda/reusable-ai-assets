@@ -75,6 +75,9 @@ test('article-library actions distinguish new revisions from existing draft work
   assert.deepEqual(studioArticleAction({ ...owned, publicationStatus: 'published', viewOnly: true }, currentUserId), {
     kind: 'view', label: 'View article', ariaLabel: 'View A published essay',
   });
+  assert.deepEqual(studioArticleAction({ ...owned, publicationStatus: 'published', viewOnly: true, source: 'host' }, currentUserId), {
+    kind: 'view', label: 'View page', ariaLabel: 'View page A published essay',
+  });
   assert.deepEqual(studioArticleAction({ ...owned, publicationStatus: 'draft', reviewStatus: 'submitted' }, currentUserId), {
     kind: 'review', label: 'Review article', ariaLabel: 'Review article A published essay',
   });

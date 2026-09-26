@@ -14,8 +14,12 @@ export const studioPublicUrl = ({ publicationStatus, publicationLiveUrl, archive
 // document already has a working record, but opening that record starts a
 // private revision when it still matches the live release and resumes it after
 // unpublished changes exist.
-export const studioArticleAction = ({ title, publicationStatus, viewOnly, ownerUid, reviewStatus }, currentUserId) => {
-  if (viewOnly) return { kind: 'view', label: 'View article', ariaLabel: `View ${title}` };
+export const studioArticleAction = ({ title, publicationStatus, viewOnly, source, ownerUid, reviewStatus }, currentUserId) => {
+  if (viewOnly) {
+    const label = source === 'host' ? 'View page' : 'View article';
+    const ariaLabel = source === 'host' ? `View page ${title}` : `View ${title}`;
+    return { kind: 'view', label, ariaLabel };
+  }
   if (ownerUid !== currentUserId || reviewStatus === 'submitted') {
     return { kind: 'review', label: 'Review article', ariaLabel: `Review article ${title}` };
   }

@@ -4,6 +4,10 @@ A reusable wrapper for controlled Google Cloud Build deployments to Cloud Run:
 
 `Preflight -> typed DEPLOY gate -> Cloud Build -> infrastructure/content verification -> handover`
 
+For dynamic applications that need genuine pre-production proof, use [`STAGED_RELEASE.md`](STAGED_RELEASE.md):
+
+`One build -> isolated staging -> evidence receipt -> exact-image production promotion`
+
 The script never commits, pushes, changes IAM, changes infrastructure settings or executes rollback. Its only production mutation is `gcloud builds submit`, available through `--deploy` after the typed gate.
 
 ## Source-publication boundary
@@ -11,6 +15,8 @@ The script never commits, pushes, changes IAM, changes infrastructure settings o
 Deployment approval does not authorize a commit or push. Before publishing a revision needed by preflight, separately confirm the exact remote URL, branch, repository visibility, commit author, authenticated Git principal, revision and any sensitive/public data in the diff. Obtain explicit source-publication approval for that destination and scope. The toolkit fails closed when local `HEAD` differs from the configured remote branch; it never repairs Git or pushes on the operator's behalf.
 
 Custom hostnames are a **separate** zero-cost flow: [`CUSTOM_DOMAIN.md`](CUSTOM_DOMAIN.md) (Cloud Run domain mapping only — no ALB). Use `scripts/custom_domain/domain_map.sh` and `apply_dns.py`. Deferred enhancements: backlog table in `CUSTOM_DOMAIN.md` (CD-B1…B5).
+
+The staged-release flow is another mode of this same RA-002 owner, not a copied project controller. Its portable entry point is [`stage-cloud-run-release/SKILL.md`](stage-cloud-run-release/SKILL.md). Project profiles, authenticated browser fixtures and receipts remain with the consumer.
 
 ## Setup
 

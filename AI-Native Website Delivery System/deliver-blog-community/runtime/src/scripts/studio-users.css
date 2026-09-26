@@ -1,0 +1,24 @@
+.studio-users { color: #20352e; height: calc(100vh - 74px); box-sizing: border-box; overflow: auto; padding: clamp(1.5rem, 4vw, 3.5rem); background: #f3f1ea; }
+.studio-users h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.15; }
+.studio-users h2 { font-size: 1.4rem; margin: 0 0 .6rem; }
+.studio-users p { line-height: 1.55; max-width: 75ch; }
+.studio-users-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+.studio-users-kicker { font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; }
+.studio-users-panel { margin-top: 1.5rem; padding: clamp(1rem, 3vw, 1.75rem); border: 1px solid #d6d4cb; border-radius: 12px; background: #fffdf8; }
+.studio-users-fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 1rem; }
+.studio-users label { display: grid; gap: .5rem; font-weight: 600; }
+.studio-users input, .studio-users select { box-sizing: border-box; min-width: 0; width: 100%; min-height: 44px; padding: .75rem; border: 1px solid #858e88; border-radius: 6px; background: white; color: #20352e; font: inherit; }
+.studio-users button { min-height: 44px; padding: .65rem 1rem; border: 1px solid #25483a; border-radius: 7px; background: #203b30; color: white; font: inherit; font-weight: 600; cursor: pointer; }
+.studio-users button:disabled { opacity: .65; cursor: wait; }
+.studio-users [hidden] { display: none; }
+.studio-users :focus-visible { outline: 3px solid #a6680a; outline-offset: 3px; }
+.studio-users-note { color: #526156; font-size: .9rem; }
+.studio-users-table-wrap { overflow-x: auto; }
+.studio-users table { width: 100%; border-collapse: collapse; text-align: left; }
+.studio-users th, .studio-users td { padding: .9rem .6rem; border-bottom: 1px solid #dfdfd5; overflow-wrap: anywhere; }
+.studio-users ul { list-style: none; padding: 0; }
+.studio-users li { display: flex; flex-wrap: wrap; gap: .5rem 1rem; padding: .9rem 0; border-bottom: 1px solid #dfdfd5; overflow-wrap: anywhere; }
+.studio-users li strong { flex: 1 1 15rem; }
+.studio-users [role="status"] { overflow-wrap: anywhere; }
+.studio-users a { color: #075e47; text-decoration: underline; }
+@media (max-width: 640px) { .studio-users { height: auto; min-height: calc(100vh - 67px); padding: 1.25rem .8rem; } .studio-users-fields { grid-template-columns: 1fr; } .studio-users-heading { align-items: flex-start; } .studio-users th, .studio-users td { padding: .7rem .35rem; font-size: .9rem; } }

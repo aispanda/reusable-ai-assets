@@ -6,6 +6,10 @@ Start with the [asset inventory](REUSABLE_ASSET_INVENTORY.md). Load only the sel
 
 ## Publication standard
 
+Local candidate: [RA-006 Blog Community Delivery](AI-Native%20Website%20Delivery%20System/deliver-blog-community/CAPABILITY.md)
+v0.2.0-rc.7 contains an installable runtime, tests, rollback, reuse prompts and agent
+adapters. Complete browser coverage and live second-site readiness remain unproven.
+
 - Fictional or generic examples only.
 - No credentials, customer data, personal machine paths or generated dependencies.
 - Project-specific settings belong in external configuration or profiles.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blog Community Delivery"
+  short_description: "Govern portable blog capability adoption and testing"
+  default_prompt: "Use $deliver-blog-community to assess this site's blog capability, validate its profile, and identify the next verified adoption step."

@@ -1,0 +1,59 @@
+{
+  "notice": "Installed locked-package metadata, not public redistribution approval. Preserve upstream licences when dependencies are installed.",
+  "runtime": "Node 24+",
+  "packageManager": "pnpm 11.22.0",
+  "emulatorRuntime": "Java 21",
+  "runtimeLicense": "UNLICENSED; private local integration candidate",
+  "dependencies": [
+    {
+      "name": "@astrojs/sitemap",
+      "version": "3.7.3",
+      "license": "MIT"
+    },
+    {
+      "name": "@tiptap/core",
+      "version": "3.30.3",
+      "license": "MIT"
+    },
+    {
+      "name": "@tiptap/extension-link",
+      "version": "3.30.3",
+      "license": "MIT"
+    },
+    {
+      "name": "@tiptap/html",
+      "version": "3.30.3",
+      "license": "MIT"
+    },
+    {
+      "name": "@tiptap/starter-kit",
+      "version": "3.30.3",
+      "license": "MIT"
+    },
+    {
+      "name": "astro",
+      "version": "7.2.0",
+      "license": "MIT"
+    },
+    {
+      "name": "firebase",
+      "version": "12.17.1",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "firebase-admin",
+      "version": "13.10.0",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "sanitize-html",
+      "version": "2.17.7",
+      "license": "MIT"
+    },
+    {
+      "name": "sharp",
+      "version": "0.35.3",
+      "license": "Apache-2.0"
+    }
+  ]
+}

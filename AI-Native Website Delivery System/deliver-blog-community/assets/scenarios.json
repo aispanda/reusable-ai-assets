@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "status": "specification-only",
+  "scenarios": [
+    {
+      "id": "AUTH-01",
+      "actors": "Fresh Google user",
+      "steps": "Sign in; reload; sign out and sign back in",
+      "expected": "Default active Commenter, never automatic editorial/Admin access; identity persists correctly",
+      "layer": "Browser + rules",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "AUTH-02",
+      "actors": "Signed out / signed in",
+      "steps": "Cancel login; try protected URL; sign out then try a mutation",
+      "expected": "No stuck/inaccurate success state; protected action denied; no data change",
+      "layer": "Browser + API",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "ROLE-01",
+      "actors": "Commenter/Viewer; no pending request",
+      "steps": "Request each of Author, Publisher, Administrator",
+      "expected": "Pending request belongs to actor; no privileges change before approval",
+      "layer": "Rules + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "ROLE-02",
+      "actors": "Pending/denied applicant",
+      "steps": "Cancel; submit again; Admin denies; submit again",
+      "expected": "Valid transitions only; truthful status; no duplicate pending request or privilege grant",
+      "layer": "Rules",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "ROLE-03",
+      "actors": "Existing Admin + pending applicant",
+      "steps": "Approve each requested role in isolated fixtures; reload applicant session",
+      "expected": "Approved access and reviewed request agree; reviewer/time recorded; permitted controls and API rights match new role",
+      "layer": "Rules + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "ROLE-04",
+      "actors": "All non-Admins",
+      "steps": "Attempt approval, self-promotion, another user's request update, forged role fields via direct requests",
+      "expected": "Denied without role/request mutation; hidden buttons alone are insufficient",
+      "layer": "Rules + API",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "ROLE-05",
+      "actors": "Fixture whose role is revoked/deactivated",
+      "steps": "Retain old session; attempt edit/publish/comment after revocation",
+      "expected": "Current authoritative permission controls the result; no stale privilege survives",
+      "layer": "API + rules; one browser check",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "ROLE-06",
+      "actors": "Author A and Author B",
+      "steps": "A reads/edits/previews/trashes/restores B's private draft using known B ID",
+      "expected": "Denied; B content unchanged; A can still use own draft",
+      "layer": "API + rules",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/firestore-rules.test.mjs"
+    },
+    {
+      "id": "BLOG-01",
+      "actors": "Author, Publisher, Admin",
+      "steps": "Create disposable article; edit title from editor then settings; save/reload; reopen in a second authorized context",
+      "expected": "One synchronized title in form and library; title/body/slug survive; cloud is authoritative, not browser-local article storage",
+      "layer": "Browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-02",
+      "actors": "Editable disposable draft",
+      "steps": "Clear/whitespace title; invalid/reserved slug; attempt preview/publish",
+      "expected": "Actionable field error, no false ready tick, no publication; body intact",
+      "layer": "API + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-03",
+      "actors": "Editable draft",
+      "steps": "Change text; simulate save failure; attempt navigation; restore connection and retry",
+      "expected": "Failure explicit; no false “saved”; uncommitted changes not silently discarded; recovered save persists once",
+      "layer": "Integration + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-04",
+      "actors": "Publisher/Admin; saved v1",
+      "steps": "Preview exact revision; publish; open returned URL anonymously",
+      "expected": "Durable release ID; exact preview/public content, title and metadata; no repository write/build/per-article deploy",
+      "layer": "API + browser + public HTTP",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-05",
+      "actors": "Published v1",
+      "steps": "Author-owner/Publisher/Admin edits and saves v2; reload both editor and public URL",
+      "expected": "Editor retains v2; public remains v1 until authorized republish",
+      "layer": "API + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-06",
+      "actors": "Publisher/Admin; v2 draft",
+      "steps": "Preview and republish at same slug",
+      "expected": "New release ID; same URL serves v2; old release record remains immutable",
+      "layer": "API + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-07",
+      "actors": "Published article",
+      "steps": "Change slug in draft; save; inspect library link; then preview/republish",
+      "expected": "Before publish, live link still targets old release; afterward new URL serves new snapshot and old URL is unavailable under current contract",
+      "layer": "API + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-08",
+      "actors": "Publisher/Admin; published QA article",
+      "steps": "Cancel Unpublish and verify unchanged; confirm Unpublish; anonymous refresh",
+      "expected": "Cancel has no effect; confirm removes public article; draft/release/audit remain recoverable; clear status",
+      "layer": "API + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-09",
+      "actors": "Author-own/Publisher/Admin; never-published and unpublished fixtures",
+      "steps": "Cancel Trash; confirm Trash; follow old editor link; restore",
+      "expected": "Active list excludes trashed item; direct mutation blocked while trashed; restore returns unpublished content, not a live release",
+      "layer": "API + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-10",
+      "actors": "Published/live-with-draft-changes fixture",
+      "steps": "Attempt Trash through UI and direct API, including missing-index fixture",
+      "expected": "No destructive shortcut; server rejects while any live publication remains",
+      "layer": "API + one UI check",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-11",
+      "actors": "Two sessions, same draft",
+      "steps": "Save from both; publish using stale preview; retry after fresh save/preview",
+      "expected": "Conflict explicit; no silent overwrite; stale preview denied; valid retry succeeds",
+      "layer": "API/integration",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-12",
+      "actors": "Publisher/Admin",
+      "steps": "Repeat identical publish request with same idempotency key; reuse key with changed payload",
+      "expected": "No duplicate release for legitimate retry; conflicting reuse rejected",
+      "layer": "API",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-13",
+      "actors": "Two different drafts requesting one slug",
+      "steps": "Publish one, then second",
+      "expected": "Second rejected; first release and second working draft unchanged",
+      "layer": "API",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "BLOG-14",
+      "actors": "Signed out, Commenter, Viewer, inactive, Author",
+      "steps": "Directly attempt restricted save/publish/unpublish/archive/restore operations",
+      "expected": "Denied according to permission matrix with no draft/release mutation",
+      "layer": "API + rules",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/content-publishing.test.mjs"
+    },
+    {
+      "id": "EDIT-01",
+      "actors": "Editable QA article",
+      "steps": "Exercise paragraph/H2/H3, bold/italic, nested bullets/numbering, links, quote, callout, divider, clear formatting, undo/redo; save/preview/publish",
+      "expected": "Supported structure persists and renders consistently; unsupported content is rejected, not silently lost",
+      "layer": "Schema tests + compact browser fixture",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/studio-content-document.test.mjs"
+    },
+    {
+      "id": "EDIT-02",
+      "actors": "QA draft with image",
+      "steps": "Valid upload; add/edit/remove caption and credit; save/preview/publish/unpublish; invalid, oversized, corrupt, cancelled and raced uploads",
+      "expected": "Permanent owned asset; optional metadata preserved; no blob/data URL publication; unauthorized/private assets stay private",
+      "layer": "Asset/API tests + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/studio-content-assets.test.mjs"
+    },
+    {
+      "id": "EDIT-03",
+      "actors": "QA draft, YouTube fixtures",
+      "steps": "Insert canonical/shortened/Shorts/parameterized URLs; reject malformed/non-video/non-YouTube; save/reload",
+      "expected": "Responsive editor preview and safe normalized provider data; original document preserved on rejection",
+      "layer": "Schema/API + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/studio-youtube.test.mjs"
+    },
+    {
+      "id": "EDIT-04",
+      "actors": "Published video fixture",
+      "steps": "Preview and public play; unavailable/embedding-disabled/external-failure variants",
+      "expected": "Reader-initiated privacy-enhanced player, no autoplay; safe fallback; page remains usable",
+      "layer": "Browser + security checks",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/studio-media-browser.test.mjs"
+    },
+    {
+      "id": "EDIT-05",
+      "actors": "Disposable copies of legacy fixtures",
+      "steps": "Open without edit; explicitly convert supported HTML; try unsupported structures",
+      "expected": "Original preserved with provenance; conversion preserves accepted content or fails visibly without lossy save",
+      "layer": "Migration tests",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/studio-content-document.test.mjs"
+    },
+    {
+      "id": "EDIT-06",
+      "actors": "Representative Latin/Devanagari/mixed/combining/emoji text",
+      "steps": "Edit, paste, save, reload, preview, publish",
+      "expected": "No deletion/reordering/corruption; separate platform verdicts, no unsupported global-script claim",
+      "layer": "Round-trip tests + browser matrix",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/studio-editor-ui.test.mjs"
+    },
+    {
+      "id": "EDIT-07",
+      "actors": "Desktop and 320-CSS-pixel-equivalent viewport",
+      "steps": "Keyboard tab/toolbar/dialogs, title settings, nested lists, narrow layout",
+      "expected": "Visible labels/focus; operable controls/confirmations; no lost actions/overflow; preview/review/receipt show correct target origin and lifecycle",
+      "layer": "Browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/studio-editor-ui.test.mjs"
+    },
+    {
+      "id": "COM-01",
+      "actors": "Commenter, Author, Publisher, Admin; published QA article",
+      "steps": "Create comment and reply; reload anonymously",
+      "expected": "Correct thread/order/body; public identity policy respected; no private owner credentials exposed",
+      "layer": "Rules + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "COM-02",
+      "actors": "Comment owner",
+      "steps": "Edit own comment; cancel then confirm delete",
+      "expected": "Own changes work; deletion does not corrupt the thread; preserved/deleted fields follow approved retention policy",
+      "layer": "Rules + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "COM-03",
+      "actors": "Another Commenter/Author/Publisher",
+      "steps": "Forge owner ID and edit/delete another user's comment",
+      "expected": "Denied; original unchanged",
+      "layer": "Rules",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "COM-04",
+      "actors": "Existing Admin",
+      "steps": "Delete another disposable user's comment/reply",
+      "expected": "Moderation succeeds with truthful feedback; unrelated comments untouched",
+      "layer": "Rules + browser",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "COM-05",
+      "actors": "Signed out, Viewer, inactive",
+      "steps": "Attempt create/reply/edit/delete",
+      "expected": "Rejected; public reading still works",
+      "layer": "Rules + one browser check",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "COM-06",
+      "actors": "Eligible users; Publisher/Admin pinning",
+      "steps": "Like/unlike; duplicate like; pin/unpin; attempt pin as Author/Commenter",
+      "expected": "Actor-specific like semantics and valid pin permissions; no arbitrary counter/owner overwrite",
+      "layer": "Rules",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    },
+    {
+      "id": "COM-07",
+      "actors": "Disposable comment/article",
+      "steps": "Submit empty/oversized/unsafe markup, forged metadata or raw publication HTML",
+      "expected": "Validation/escaping/sanitization prevents script execution and identity forgery; no unintended mutation",
+      "layer": "Rules/API + one rendering check",
+      "status": "UNPROVEN",
+      "automationRef": "runtime/tests/community-rules.test.mjs"
+    }
+  ]
+}

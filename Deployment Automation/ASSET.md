@@ -18,6 +18,7 @@ Provide a controlled manual deployment flow: preflight â†’ exact `DEPLOY` gate â
 - [`CUSTOM_DOMAIN.md`](CUSTOM_DOMAIN.md): custom-domain mapping, DNS publication and cutover verification.
 - [`custom-domain.config.example`](custom-domain.config.example): project-owned domain contract.
 - [`scripts/custom_domain/`](scripts/custom_domain/): cloud + registrar DNS helpers (registrar-agnostic core; provider adapters).
+- [`scripts/cloud-run-image-access.mjs`](scripts/cloud-run-image-access.mjs): read-only verification of staging and production Cloud Run service agents' effective access to a cross-project image repository; consumer hook integration is required.
 - [`test.sh`](test.sh): local-only test suite using stubs; never contacts Google Cloud.
 - [`deployment.config.example`](deployment.config.example): per-project configuration contract.
 - [`ISSUES_AND_RESOLUTIONS.md`](ISSUES_AND_RESOLUTIONS.md): reusable deployment failures, fixes and prevention gates.
@@ -35,6 +36,7 @@ Verify locally with:
 ```bash
 bash "./test.sh"
 python scripts/custom_domain/test_custom_domain_tools.py
+node --test scripts/cloud-run-image-access.test.mjs
 ```
 
 ## Boundaries

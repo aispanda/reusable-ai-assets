@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Blog capability source-consumer coordination protocol v1",
+  "description": "Envelope validation is not authority, runtime proof, or task-wake proof. Receiver also checks path containment, archive SHA-256, exact reply binding, IDs and persisted repair cycles.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocolVersion", "capability", "kind", "messageId", "replyToId", "packageVersion", "packageSha256", "status", "evidencePaths", "defects", "blockers"],
+  "properties": {
+    "protocolVersion": { "const": 1 },
+    "capability": { "const": "deliver-blog-community" },
+    "kind": { "enum": ["source", "consumer"] },
+    "messageId": { "$ref": "#/$defs/id" },
+    "replyToId": { "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+    "packageVersion": { "oneOf": [{ "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]{0,99}$" }, { "type": "null" }] },
+    "packageSha256": { "oneOf": [{ "type": "string", "pattern": "^[a-f0-9]{64}$" }, { "type": "null" }] },
+    "packagePath": { "oneOf": [{ "$ref": "#/$defs/path" }, { "type": "null" }] },
+    "ready": { "type": "boolean" },
+    "status": { "enum": ["BUILDING", "READY_FOR_TARGET_INTEGRATION", "BLOCKED", "STOPPED", "ACKNOWLEDGED", "VALIDATED", "DEFECTS_FOUND"] },
+    "evidencePaths": { "$ref": "#/$defs/paths" },
+    "defects": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/defect" } },
+    "blockers": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/blocker" } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "source" } } },
+      "then": {
+        "required": ["ready", "packagePath"],
+        "properties": { "status": { "enum": ["BUILDING", "READY_FOR_TARGET_INTEGRATION", "BLOCKED", "STOPPED"] } },
+        "allOf": [{
+          "if": { "properties": { "status": { "const": "READY_FOR_TARGET_INTEGRATION" } } },
+          "then": {
+            "properties": { "ready": { "const": true }, "packageVersion": { "type": "string" }, "packageSha256": { "type": "string" }, "packagePath": { "type": "string" } }
+          },
+          "else": { "properties": { "ready": { "const": false }, "packageVersion": { "type": "null" }, "packageSha256": { "type": "null" }, "packagePath": { "type": "null" } } }
+        }]
+      },
+      "else": {
+        "not": { "anyOf": [{ "required": ["ready"] }, { "required": ["packagePath"] }] },
+        "properties": { "replyToId": { "$ref": "#/$defs/id" }, "status": { "enum": ["ACKNOWLEDGED", "VALIDATED", "DEFECTS_FOUND", "BLOCKED"] } },
+        "allOf": [{
+          "if": { "properties": { "status": { "const": "ACKNOWLEDGED" } } },
+          "then": { "properties": { "packageVersion": { "type": "null" }, "packageSha256": { "type": "null" }, "evidencePaths": { "maxItems": 0 }, "defects": { "maxItems": 0 }, "blockers": { "maxItems": 0 } } },
+          "else": { "properties": { "packageVersion": { "type": "string" }, "packageSha256": { "type": "string" } } }
+        }]
+      }
+    },
+    { "if": { "properties": { "status": { "const": "DEFECTS_FOUND" } } }, "then": { "properties": { "defects": { "minItems": 1 } } } },
+    { "if": { "properties": { "status": { "const": "BLOCKED" } } }, "then": { "properties": { "blockers": { "minItems": 1 } } } },
+    { "if": { "properties": { "status": { "const": "VALIDATED" } } }, "then": { "properties": { "evidencePaths": { "minItems": 1 }, "defects": { "maxItems": 0 }, "blockers": { "maxItems": 0 } } } }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$" },
+    "path": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "paths": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/path" } },
+    "defect": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "severity", "summary", "evidencePaths"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "severity": { "enum": ["P0", "P1", "P2", "P3"] },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 2000, "pattern": "\\S" },
+        "scenarioId": { "type": "string", "maxLength": 100 },
+        "evidencePaths": { "$ref": "#/$defs/paths" }
+      }
+    },
+    "blocker": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "summary", "evidencePaths"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 2000, "pattern": "\\S" },
+        "evidencePaths": { "$ref": "#/$defs/paths" }
+      }
+    }
+  }
+}

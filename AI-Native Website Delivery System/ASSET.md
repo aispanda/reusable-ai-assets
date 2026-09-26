@@ -101,6 +101,22 @@ Outputs:
 
 ## Use / transfer
 
+### Blog/community capability (local integration candidate)
+
+For Google sign-in, role applications/approval, comments, draft versions and
+snapshot publishing, use [deliver-blog-community/SKILL.md](deliver-blog-community/SKILL.md).
+This v0.2.0-rc.7 extension includes a versioned Astro/Node/Firebase runtime,
+hash-pinned installer, rollback support, role/scenario tests, trigger prompts and
+optional agent adapters. Local integration readiness is distinct from deployed
+browser acceptance, complete scenario coverage and public release authority.
+See [its manifest and gates](deliver-blog-community/CAPABILITY.md).
+
+The observed weakness was an instruction-only kit that could not install the
+working capability. The extension now owns the extracted core, executable checks
+and deterministic cross-task feedback without creating a competing asset.
+
+### Existing website-delivery workflow
+
 1. Read `deliver-websites/SKILL.md`; use `references/stakeholder-intake.md` to complete the discovery gate without a long questionnaire.
 2. Select launch/later capabilities from `references/strategy-capability-inventory.md` into `assets/templates/SITE_LAUNCH_INVENTORY.md`.
 3. Choose a delivery profile using `references/architecture-selection.md`; consult `references/ui-ux-ecosystem-catalog.md` only for layers the project needs and recheck official sources before locking choices.

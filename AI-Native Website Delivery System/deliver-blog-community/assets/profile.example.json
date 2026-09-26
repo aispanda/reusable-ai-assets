@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "capability": "blog-community",
+  "consumer": "sample-journal",
+  "issue": "WEB-123",
+  "branch": "codex/web-123-blog",
+  "stack": "astro-firebase-cloud-run",
+  "environments": {
+    "staging": {
+      "origin": "https://staging.journal.example",
+      "dataProject": "sample-journal-staging"
+    },
+    "production": {
+      "origin": "https://journal.example",
+      "dataProject": "sample-journal-production"
+    }
+  },
+  "defaultRole": "commenter",
+  "deletionMode": "recoverable-trash",
+  "fixtureIdentityRefs": {
+    "admin": "test-identity:admin",
+    "publisher": "test-identity:publisher",
+    "authorA": "test-identity:author-a",
+    "authorB": "test-identity:author-b",
+    "commenter": "test-identity:commenter",
+    "viewer": "test-identity:viewer",
+    "inactive": "test-identity:inactive"
+  }
+}

@@ -1,0 +1,30 @@
+---
+import '@/styles/global.css';
+import site from '@/site';
+const { title = site.siteName, description = site.description, noindex = false, canonicalHref } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title} · {site.siteName}</title>
+    <meta name="description" content={description} />
+    {canonicalHref && <link rel="canonical" href={canonicalHref} />}
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header"><nav class="shell site-nav" aria-label="Main navigation">
+      <a href="/">{site.siteName}</a>
+      <a href="/">Main library</a>
+      <a href="/account">My account</a>
+    </nav></header>
+    <main id="main"><slot /></main>
+    <footer class="shell"><p>{site.description}</p></footer>
+  </body>
+</html>
+<style>
+.site-nav {display:flex;align-items:center;gap:1.25rem;padding:1rem 0;flex-wrap:wrap;}
+.site-nav a:first-child {margin-right:auto;font-weight:700;}
+</style>

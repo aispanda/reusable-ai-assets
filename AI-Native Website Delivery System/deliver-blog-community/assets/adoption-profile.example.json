@@ -1,0 +1,24 @@
+{
+  "format": "blog-adoption/1",
+  "site": "fictional-journal",
+  "environment": "local",
+  "archive": "/fictional/packages/blog-community.blog.json.gz",
+  "packageSha256": "REPLACE_WITH_ARCHIVE_SHA256",
+  "packageVersion": "0.2.0-rc.8",
+  "installRoot": "/fictional/site/vendor/blog-community",
+  "prerequisites": [
+    { "path": "/fictional/site/site-profile.json", "sha256": "REPLACE_WITH_FILE_SHA256" },
+    { "path": "/fictional/site/package-lock.json", "sha256": "REPLACE_WITH_FILE_SHA256" },
+    { "path": "/fictional/site/test-adoption.mjs", "sha256": "REPLACE_WITH_FILE_SHA256" }
+  ],
+  "verification": [
+    {
+      "id": "consumer-contract",
+      "executable": "/fictional/tools/node",
+      "sha256": "REPLACE_WITH_EXECUTABLE_SHA256",
+      "cwd": "/fictional/site",
+      "args": ["--test", "test-adoption.mjs"],
+      "timeoutMs": 120000
+    }
+  ]
+}

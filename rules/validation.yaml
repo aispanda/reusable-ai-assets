@@ -1,0 +1,44 @@
+version: "1.0"
+validation_checks:
+  python_syntax:
+    description: "Valid Python 3.11+ syntax"
+    enabled: true
+    method: "py_compile"
+  import_security:
+    description: "No unsafe imports (os.system, eval, exec, pickle)"
+    enabled: true
+    forbidden_imports:
+      - "os.system"
+      - "subprocess.call"
+      - "eval"
+      - "exec"
+      - "pickle"
+  code_style:
+    description: "PEP 8 compliance"
+    enabled: true
+  type_hints:
+    description: "All functions have type hints"
+    enabled: true
+  docstrings:
+    description: "All functions have docstrings"
+    enabled: true
+  error_handling:
+    description: "All try-except blocks have specific exception types"
+    enabled: true
+    forbidden: "except:"
+  gcs_integration:
+    description: "GCS paths use 'gs://' prefix"
+    enabled: true
+  gsm_integration:
+    description: "Secret retrieval uses Google Secret Manager"
+    enabled: true
+  test_coverage:
+    description: "Minimum 70% code coverage"
+    enabled: true
+    threshold: 0.7
+
+approval_rules:
+  requires_judge_review: true
+  judge_model: "claude-opus-4-1-20250805"
+  auto_merge_on_pass: false
+  review_timeout_hours: 24

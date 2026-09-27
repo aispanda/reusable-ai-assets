@@ -1,0 +1,29 @@
+name: Quality
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  repository-quality:
+    name: repository-quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Audit governance adoption
+        run: >-
+          python "AI-Native Rapid Solution Delivery Kit/rapid-ai-solution-delivery/scripts/check_delivery.py"
+          --mode audit
+          --checker-path "AI-Native Rapid Solution Delivery Kit/rapid-ai-solution-delivery/scripts/check_delivery.py"
+          --fetcher-path "AI-Native Rapid Solution Delivery Kit/rapid-ai-solution-delivery/scripts/fetch_linear_issue.py"
+          --status-path "AI-Native Rapid Solution Delivery Kit/rapid-ai-solution-delivery/scripts/set_pull_request_status.py"
+      - name: Run reusable-asset checks
+        run: bash governance/run_quality.sh

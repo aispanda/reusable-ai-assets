@@ -5,7 +5,7 @@
 | Category | Consulting delivery / project governance |
 | Select when | Starting or recovering an application, digital product, platform, data, automation, or AI initiative; capturing seed ideas; deriving mission/vision/north star/principles or brand feeling from vibe |
 | Entry point | [`rapid-ai-solution-delivery/SKILL.md`](rapid-ai-solution-delivery/SKILL.md) |
-| Status | Pilot-ready v0.16; writing via RA-006 writing-craft (sutra = one type); strategy→expression brand flow (Q1–Q16); independent evaluation pending |
+| Status | Pilot-ready v0.17; governance router, deterministic delivery gate and GitHub adoption scaffold added; cross-repository evaluation pending |
 
 ## Outcome
 
@@ -38,6 +38,17 @@ Turn an informal stakeholder idea into a business-understandable, evidence-backe
 | `rapid-ai-solution-delivery/scripts/scaffold_project.py` | Non-destructive progressive project scaffold | Reusable core |
 | `rapid-ai-solution-delivery/scripts/audit_project.py` | Read-only structure and readiness audit | Reusable core |
 | `rapid-ai-solution-delivery/scripts/test_delivery_tools.py` | Isolated smoke tests | Verification |
+| `rapid-ai-solution-delivery/scripts/check_delivery.py` | Fail-closed Linear, Git, pull-request and reviewed-SHA preflight | Reusable core |
+| `rapid-ai-solution-delivery/scripts/fetch_linear_issue.py` | Read-only Linear evidence through the governed TrueFoundry MCP connection | Reusable core |
+| `rapid-ai-solution-delivery/scripts/set_pull_request_status.py` | Trusted live delivery status on the current pull-request head | Reusable core |
+| `rapid-ai-solution-delivery/scripts/test_governance_check.py` | Deterministic gate regression tests | Verification |
+| `rapid-ai-solution-delivery/assets/AGENTS.template.md` | Canonical-policy router and local preflight | Reusable core |
+| `rapid-ai-solution-delivery/assets/PULL_REQUEST_TEMPLATE.template.md` | Concise issue, evidence, review and deployment contract | Reusable core |
+| `rapid-ai-solution-delivery/assets/GOVERNANCE_WORKFLOW.template.yml` | Trusted-base TrueFoundry/Linear delivery-contract check | Reusable core |
+| `rapid-ai-solution-delivery/assets/QUALITY_WORKFLOW.template.yml` | Secret-free pull-request quality/audit check | Reusable core |
+| `rapid-ai-solution-delivery/assets/RELEASE_WORKFLOW.template.yml` | Reviewed-SHA and protected-environment release authorization | Reusable core |
+| `rapid-ai-solution-delivery/assets/GOVERNANCE_ACTIVATION.template.md` | Remote rules, secret and environment activation checklist | Reusable core |
+| `rapid-ai-solution-delivery/assets/RUN_QUALITY.template.sh` | Fail-closed project quality-command hook | Reusable core |
 | `rapid-ai-solution-delivery/agents/openai.yaml` | Skill discovery metadata | Reusable core |
 
 ## Inputs and outputs
@@ -69,7 +80,9 @@ Append `--with-research` and/or `--with-ai-exchange` to both commands only when 
 
 ## Verification
 
-- `python rapid-ai-solution-delivery/scripts/test_delivery_tools.py` verifies non-overwrite behavior, every mode/stage, conditional folders, router coverage, local links, freshness checks, incomplete documents, and unresolved decisions.
+- For live CI, grant a TrueFoundry Virtual Account only the Linear MCP `get_issue` tool and store its auto-rotated token as the protected GitHub Actions secret `TFY_API_KEY`. Do not create or store a personal Linear API key.
+- `python rapid-ai-solution-delivery/scripts/test_delivery_tools.py` verifies non-overwrite behavior, every mode/stage, governance adoption, conditional folders, router coverage, local links, freshness checks, incomplete documents, and unresolved decisions.
+- `python rapid-ai-solution-delivery/scripts/test_governance_check.py` verifies valid/invalid issue, branch, substantive pull-request evidence, revision-bound status, dirty-tree, TrueFoundry normalization, final-head independent approval, adoption and reviewed-SHA paths.
 - Run the standard skill validator on `rapid-ai-solution-delivery`.
 - Run the central reusable-asset validator against the asset-library root.
 - Forward evaluation still required with three representative projects: a Lite business app, Standard integration/AI platform, and Controlled sensitive-data initiative.

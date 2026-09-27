@@ -62,7 +62,7 @@ If (1)–(2) fail, stop generation. If (3) is inverted (waiting for perfect crit
 
 **Operating frame — The 10 principles of building with AI:** Use them as decision tests, not slogans. Each one names a phase, a short rule, a practical check, and a concrete scenario. Principle 1 operationalizes the operating model. Principle 10 keeps the list itself swappable.
 
-**Writing craft:** When creating or refining any principle row—or other site prose—use RA-006 [`../../../AI-Native Website Delivery System/deliver-websites/references/writing-craft.md`](../../../AI-Native%20Website%20Delivery%20System/deliver-websites/references/writing-craft.md) (type `principle-sutra` for these rows). The compressed line may stay elevated; rule, practical test and example must stay plain and concrete.
+**Writing craft:** When creating or refining any principle row—or other site prose—use RA-006 [`writing-craft.md`](https://github.com/aispanda/reusable-ai-assets/blob/main/AI-Native%20Website%20Delivery%20System/deliver-websites/references/writing-craft.md) (type `principle-sutra` for these rows). The compressed line may stay elevated; rule, practical test and example must stay plain and concrete.
 
 ## The 10 principles
 

@@ -1,0 +1,24 @@
+name: Quality
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  repository-quality:
+    name: repository-quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Audit governance adoption
+        run: python governance/check_delivery.py --mode audit
+      - name: Run repository quality checks
+        run: bash governance/run_quality.sh

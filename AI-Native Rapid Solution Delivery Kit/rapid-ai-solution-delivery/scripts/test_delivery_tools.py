@@ -29,6 +29,24 @@ def main() -> int:
         run(str(SCAFFOLD), str(root), "--project-name", "Changed")
         assert charter.read_text(encoding="utf-8") == original
         run(str(AUDIT), str(root))
+        assert (root / "AGENTS.md").is_file()
+        assert (root / ".github/pull_request_template.md").is_file()
+        assert (root / ".github/workflows/governance.yml").is_file()
+        assert (root / ".github/workflows/quality.yml").is_file()
+        assert (root / ".github/workflows/release.yml").is_file()
+        assert (root / "docs/GOVERNANCE_ACTIVATION.md").is_file()
+        assert (root / "governance/check_delivery.py").is_file()
+        assert (root / "governance/fetch_linear_issue.py").is_file()
+        assert (root / "governance/set_pull_request_status.py").is_file()
+        unconfigured = run(
+            str(root / "governance/check_delivery.py"), "--mode", "audit",
+            "--repo-root", str(root), expect=1,
+        )
+        assert "governance/run_quality.sh" in unconfigured.stderr
+        (root / "governance/run_quality.sh").write_text("#!/usr/bin/env sh\nset -eu\nexit 0\n", encoding="utf-8")
+        run(str(root / "governance/check_delivery.py"), "--mode", "audit", "--repo-root", str(root))
+        agents = (root / "AGENTS.md").read_text(encoding="utf-8")
+        assert "governance/check_delivery.py --mode local" in agents
         incomplete = run(str(AUDIT), str(root), "--require-complete", expect=1)
         assert "INCOMPLETE" in incomplete.stdout and "UNRESOLVED_DECISION" in incomplete.stdout
 

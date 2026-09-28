@@ -1,69 +1,66 @@
 ---
 name: create-reusable-asset
-description: Identify, extract, scaffold, package, register, transfer, and verify reusable assets from completed or repeated project work with minimal context. Use when code, automation, templates, prompts, decision frameworks, governance processes, reference mappings, use-case data models, starter architectures, or AI skills may benefit other projects; when closing an activity and checking what should be retained; when centralizing a shared tool; or when auditing an asset library for portability, duplication, missing routers, unsafe data, unclear ownership, or stale copies.
+description: Check reusable options and capability readiness before build work; discover, adopt, create, improve, verify, and maintain reusable assets and Agent Skills. Use when selecting local or GitHub assets, equipping agents with relevant skills and context, extracting a repeated workflow, or preparing a portable skill or asset repository. This skill prepares reuse and readiness; it does not replace the project's delivery workflow.
 ---
 
 # Create Reusable Asset
 
-Turn valuable project work into one portable, governed package without duplicating the source of truth.
+Turn useful project learning into a maintainable asset, or adopt one that already does the job.
 
-## Fast lane
+**Reuse when useful; adapt when better; invent when necessary.** Keep judgment flexible and make only genuine correctness, safety, and delivery constraints mandatory.
 
-1. Read the central `REUSABLE_ASSET_INVENTORY.md`, then the project documentation and automation routers. Use targeted search only; do not load the whole project.
-2. List candidates in one compact table: proposed ID/name, reusable outcome, reusable core, project-specific profile, value, and recommendation. Merge with an existing asset when it already owns the outcome.
-3. Package only candidates with repeated use, cross-project applicability, expensive rediscovery, deterministic automation, or a high-value governance pattern.
-4. Classify every component as reusable core, replaceable project profile, evidence/provenance, or excluded generated/dependency output.
-5. Choose the appropriate pattern and risk tier from [asset-patterns.md](references/asset-patterns.md). For a new record, run [scaffold_asset.py](scripts/scaffold_asset.py); do not hand-write standard boilerplate.
-6. Replace embedded project facts and machine paths with relative configuration or explicit parameters. Keep one representative fictional example when it materially improves adoption or testing.
-7. Publish safely: staged copy -> clean verification -> consumer wrapper/router repoint -> obsolete duplicate removal. Never move the working source first.
-8. Resolve approved runtimes and verify one representative utility before testing. Run narrow tests, consumer tests, [validate_asset.py](scripts/validate_asset.py), and `--strict-clean` against a staged transfer package. For AI skills or judgment-heavy processes, run the three cases in [evaluation-cases.md](references/evaluation-cases.md). Mark `Reusable` only from observed evidence.
-9. When a failure reveals a reusable workflow weakness, add the evidence, root cause, safe resolution and prevention to [issue-resolution-patterns.md](references/issue-resolution-patterns.md). Do not log routine project defects that teach nothing reusable.
-10. Route each reusable lesson to the asset that owns the affected behavior and strengthen its checklist, template, validator or test. If no existing asset owns the use case, highlight a candidate with its outcome and boundary; do not create it silently.
+## Find the best existing owner first
 
-## Compounding improvement loop
+1. Establish the requested outcome and scope: discovery, structure proposal, adoption, authoring, improvement, evaluation, registration, or publication. Respect a request to stop after planning; do not scaffold or publish from planning approval alone.
+2. Search the local inventory, installed capabilities, and user-provided research registries by outcome. Inspect only the selected records. Follow promising external candidates to their authoritative repositories and current documentation before deciding to build.
+3. Use the discovery reference below to choose direct adoption, composition, a thin adapter, an upstream improvement, a justified fork, or new work. An external asset can remain externally owned; registration does not require copying it into the library.
+4. Before editing, state the observed reusable gap and proposed improvement. Keep unproven opportunities as candidates. Separate reusable core, replaceable project profile, evidence, and excluded/generated material.
+5. Create a new reusable asset only for demonstrated repeated or cross-project value, costly rediscovery, or a high-value reusable method that existing owners do not cover. Otherwise keep the work project-specific or record a deferred candidate.
 
-`Deliver -> observe repetition/failure -> strengthen the owning asset or flag a genuine gap -> validate -> register -> reuse -> learn again.`
+## Confirm readiness before building
 
-Prefer an improved existing skill over a growing catalogue of overlapping skills. The library compounds only when verified learning returns to the reusable owner.
+Before substantive build or integration work, use [Build readiness](references/build-readiness.md) to confirm the reuse decision, authoritative sources, selected skill instructions actually read, repository/version, available tools/access, role-specific context, and observable acceptance checks. Reuse recent evidence when its assumptions remain valid; do not repeat discovery for every edit.
 
-## Specific use-case models
+Use the smallest team that can resolve the task's uncertainty. For consequential or contested choices, obtain an independent challenge and resolve material disagreements against evidence. A listed capability, simulated contender, agent vote, or judge score is not proof that an operation works. Missing execution prerequisites block only dependent work, not useful research or preparation.
 
-Do not relabel one project's schema as universal. Separate three layers:
+## Load only what the task needs
 
-- **Method/core:** elicitation checklist, naming rules, DBML/data-dictionary format, generators, validators and review workflow.
-- **Domain starter:** a clearly labelled starting profile such as customer-support case management, with assumptions and POC/MVP/later boundaries.
-- **Project profile:** local entities, terminology, fields, rules, examples and integrations; it remains owned by the consuming project.
+| Task | Read |
+|---|---|
+| Find and assess existing assets before building | [Discovery and adoption](references/discovery-and-adoption.md) |
+| Confirm resources and agent context before a build | [Build readiness](references/build-readiness.md) |
+| Choose an asset type or separate a domain starter from its method | [Asset patterns](references/asset-patterns.md) |
+| Author or improve a portable Agent Skill | [Skill authoring](references/skill-authoring.md) |
+| Choose repository structure, register ownership, publish, or maintain an asset | [Repository lifecycle](references/repository-lifecycle.md) |
+| Create or update the asset's concise record | [Asset record template](references/asset-record-template.md) |
+| Design or run behavioral evaluations | [Evaluation cases](references/evaluation-cases.md) |
+| Diagnose a recurring packaging or reuse failure | [Issue-resolution patterns](references/issue-resolution-patterns.md) |
+| Prepare a public package's private validation policy | [Policy example](references/validation-policy.example.json) |
 
-Prefer configuration and profiles over copied forks. State that starter fields are recommendations that projects may tailor.
+## Build the smallest useful change
 
-## Token discipline
+- Define inputs, outputs, dependencies, and observable success before writing extensive guidance.
+- Keep reusable instructions independent of this conversation, private planning documents, and personal machine paths. Use relative paths, replaceable configuration, and fictional or redistributable examples.
+- Keep one owner for each instruction. Put shared decisions in the entry point and conditional detail in directly linked references; do not copy provider manuals or load every catalog by default.
+- Use available authoring tools. For a new local catalog record, use [scaffold_asset.py](scripts/scaffold_asset.py); it creates a Draft record, not a finished skill or repository. For a standalone or external asset, keep only a pointer record in the catalog.
+- Do not add scripts, schemas, compatibility matrices, CI, or extra governance files without an actual consumer need. Reuse established helpers when deterministic behavior is necessary.
+- Preserve unrelated work. Use an isolated branch or checkout when the existing working tree contains other changes.
 
-- Reduce cost through targeted reads, progressive disclosure, reusable automation and evidence links; never reduce required quality, safety, scope or verification.
-- Read inventory -> selected `ASSET.md` -> only linked components needed for the task.
-- Search routers and filenames before opening owning documents.
-- Link source files; never paste their contents into `ASSET.md`.
-- Reuse one template, fixture and verification command per behavior; do not package historical narration or screenshots as core.
-- Batch inventory/router edits after asset files pass checks.
-- Report only outcome, files/routers changed, verification, real limitation and required decision.
+## Verify before claiming reuse
 
-## Decisions requiring the user
+1. Resolve an available runtime and run relevant existing checks. Run new or changed executable helpers; instruction changes need behavioral checks, not tests that merely match their wording.
+2. Check skill metadata and relative links, then try a clean installation containing only the transferable package. Provider metadata alone does not prove portability.
+3. For a new or substantially changed judgment-heavy asset, run at least three representative evaluations selected for its actual behavior. A small correction needs the affected case and relevant regression checks. Record what ran, failed, was fixed, or remains untested.
+4. Compare with the previous version or a no-skill baseline when claiming a quality or speed improvement. Structural validation alone does not establish either claim.
+5. For library records, run [validate_asset.py](scripts/validate_asset.py). For public transfer, run its `--strict-clean --policy <external-policy.json>` check on a staged package, review the actual diff and included files, and verify one consuming workflow. The scanner is a limited check, not a safety guarantee.
+6. Keep Draft or Pilot status until the claimed scope has observed evidence; distinguish a published experimental package from a verified release.
 
-Ask only when the answer changes the reusable boundary, canonical ownership, destructive movement, licence acceptance, secrets/customer-data handling, external publication, or material cost. Otherwise choose safe names, IDs, folders and defaults from existing conventions.
+## Publish and maintain one source of truth
 
-Present a required decision as: recommendation, business benefit, impact/risk, and exact approval needed.
+- Follow the repository lifecycle reference for publication. Confirm destination, existing authorization, license decision, and applicable repository controls before the public write; do not repeatedly ask for authority already granted for that action.
+- Transfer safely: stage intended content, verify the clean copy, repoint the consumer, and only then retire an obsolete copy when authorized. Never move a working source first.
+- Keep inventory and consumer links aligned with the authoritative package. Hosted registrations and installed copies are versioned adapters or distribution copies, not independent owners.
+- Classify feedback before changing instructions: source/input, reusable guidance, catalog, tool/environment, or one-off output. Strengthen the owning asset only when evidence supports a reusable correction, then verify both the asset and its consumer.
+- Keep private evidence and named comparative research outside the public package. Summarize only generic lessons, observed verification, and known limits in the asset record.
 
-## Quality gate
-
-Do not mark an asset reusable unless it has:
-
-- One clear outcome, need-based trigger, stable ID, central owner and entry point.
-- A manifest separating core, profile, evidence and exclusions.
-- Defined inputs, outputs, dependencies, licences, cost, limitations and source-of-truth boundary.
-- Replaceable project configuration and no credentials, customer data, tracked machine paths, dependencies or generated builds.
-- Executed verification plus one clean adoption/consumer test where applicable.
-- Three representative evaluations for AI skills or judgment-heavy assets; test more than one capable agent/model surface when available.
-- Central inventory and affected project routers pointing to the canonical asset.
-- No competing active copy without an explicit migration status.
-- A staged public-release package passes `--strict-clean` and a project-owned `--policy` file before any commit or push. Keep client names, private projects, extra secret patterns, local roots and tool-output folders in that external JSON policy; use repeatable `--forbid-term` only for one-off additions. Start from [validation-policy.example.json](references/validation-policy.example.json).
-- The staged package has a reviewed file count/size, contains no dependencies or generated evidence, passes credential and personal-identity scans, and preserves only fictional examples.
-- Before public commit: verify remote visibility, privacy-safe author identity, the authenticated Git principal's access to the target owner/repository, licence decision, explicit publication approval, and `git diff --cached --check`. Commit author and remote credentials are separate identities. Rerun affected functional tests after mechanical formatting.
+Ask only for missing decisions that materially change ownership, scope, licensing, publication, destructive movement, sensitive-data handling, or cost. Complete authorized preparation first. Finish with the outcome, changed files, verification, remaining limitations, and any required next decision.
